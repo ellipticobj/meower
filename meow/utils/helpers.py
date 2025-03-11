@@ -163,7 +163,12 @@ def getgitcommands(
     if gitcommand == "add":
         return [], ["git", "add"] + (commandargs or ["."])
     elif gitcommand == "commit":
-        return ["git", "add", "."], ["git", "commit"] + (["-m"] + commandargs if commandargs else [])
+        if ["-m"] in commandargs:
+            return ["git", "add", "."], ["git", "commit"] + commandargs
+        elif commandargs:
+            return ["git", "add", "."], ["git", "commit"] + (["-m"] + commandargs)
+        else:
+            return ["git", "add", "."], ["git", "commit"] + ["--allow-empty-message"]
     elif gitcommand == "pull":
         return [], ["git", "pull"] + commandargs + ["--autostash"]
     elif gitcommand == "clone":

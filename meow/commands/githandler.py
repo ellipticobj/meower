@@ -2,10 +2,10 @@ from typing import List, Dict
 from sys import exit
 from tqdm import tqdm # type: ignore
 from colorama import Fore, Style # type: ignore
-from core.executor import runcmd
-from utils.loaders import startloadinganimation, stoploadinganimation
-from utils.helpers import list2cmdline, getgitcommands
-from utils.loggers import error
+from core.executor import runcmd # type: ignore
+from utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
+from utils.helpers import list2cmdline, getgitcommands # type: ignore
+from utils.loggers import error # type: ignore
 
 def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     gitcmd = args[1]
