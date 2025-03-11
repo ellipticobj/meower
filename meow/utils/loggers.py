@@ -89,9 +89,12 @@ def printoutput(
         ) -> None:
     '''prints commands output'''
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
-
+    # TODO: depracate the giant block below and change it to something like this diff block.
     if 'diff' in list2cmdline(result.args):
         printdiff(outputstr=outputstr, pbar=pbar)
+        return
+    elif 'commit' in list2cmdline(result.args):
+        showcommitresult(result, pbar)
         return
     
     if pbar:
