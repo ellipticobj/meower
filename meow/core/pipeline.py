@@ -1,3 +1,4 @@
+import os
 from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
@@ -72,32 +73,86 @@ class Pipeline:
         totaltime = time() - starttime
         self.report.append({"step": "TOTAL", "duration": totaltime})
         
-        # complete bar
-        if self.pbar.n < self.pbar.total:
-            self.pbar.n = self.pbar.total
-        self.pbar.colour = 'green'
-        self.pbar.refresh()
+        # complete bar - ensure it's set to 100%
+        if self.pbar and self.pbar.n < self.pbar.total:
+            self.pbar.n = self.pbar.total - 1  # set to just before completion
+            self.pbar.update(1)  # update to ensure proper rendering
+            self.pbar.colour = 'green'
+            self.pbar.refresh()  # make sure display is updated
 
     def generatereport(self, saveto: Optional[str] = None, pbar: Optional[tqdm] = None) -> None:
         '''generates report and saves to saveto if saveto is provided'''
-        output: List[str] = ["\report:\n"]
-        for step in self.report:
-            output.append(f"step: {step['step']}\n")
-            output.append(f"  command: {step.get('command', 'N/A')}\n")
-            output.append(f"  duration: {step['duration']:.8f} seconds\n")
+        from datetime import datetime
+        
+        # get current timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # build report header
+        output: List[str] = [
+            "# meow execution report\n",
+            f"generated: {timestamp}\n\n",
+            "## summary\n",
+            f"total steps: {len(self.report)-1}\n",  # -1 because last item is the TOTAL
+            f"total duration: {self.report[-1]['duration']:.3f} seconds\n\n",
+            "## steps\n\n"
+        ]
+        
+        # add detailed step information
+        for i, step in enumerate(self.report[:-1], 1):  # skip the TOTAL summary at the end
+            cmd = step.get('command', 'N/A')
+            stepname = step['step']
+            duration = step['duration']
+            returncode = step.get('returncode', 'N/A')
             
+            # format step header
+            output.append(f"### step {i}: {stepname}\n")
+            output.append(f"command: `{cmd}`\n")
+            output.append(f"duration: {duration:.3f} seconds\n")
+            output.append(f"status: {'✓ success' if returncode == 0 else '❌ failed'}\n")
+            
+            # add step output if available (format for readability)
             if step.get("output"):
-                output.append(f"  output: {step['output']}\n")
-            if step.get("returncode"):
-                output.append(f"  return code: {step['returncode']}\n")
+                # limit output length for readability
+                outputtxt = str(step.get("output", ""))
+                if len(outputtxt) > 500:
+                    outputtxt = outputtxt[:500] + "...\n[output truncated]"
+                
+                output.append("\n```\n")
+                output.append(outputtxt)
+                output.append("\n```\n")
+            
             output.append("\n")
         
-        output.append(f"total duration: {self.report[-1]['duration']:.8f} seconds\n")
+        # add performance summary
+        output.append("## performance summary\n\n")
+        
+        # sort steps by duration to find slowest steps
+        sortedduration = sorted(
+            [step for step in self.report if step['step'] != 'TOTAL'],
+            key=lambda x: x['duration'], 
+            reverse=True
+        )
+        
+        if sortedduration:
+            output.append("longest steps:\n")
+            for i, step in enumerate(sortedduration[:3], 1):
+                output.append(f"{i}. {step['step']}: {step['duration']:.3f}s\n")
+            output.append("\n")
+        
+        output.append(f"total execution time: {self.report[-1]['duration']:.3f} seconds\n")
 
+        # save or display report
         if saveto:
+            # ensure directory exists
+            report_dir = os.path.dirname(saveto)
+            if report_dir and not os.path.exists(report_dir):
+                os.makedirs(report_dir, exist_ok=True)
+                
+            # write report with proper formatting
             with open(saveto, 'w') as f:
                 f.writelines(output)
             success(message=f"report saved to {saveto}", pbar=pbar)
         else:
+            # display report to console
             for line in output:
                 info(line, pbar=pbar)

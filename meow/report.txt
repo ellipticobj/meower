@@ -1,21 +1,51 @@
-eport:
-step: stage changes
-  command: git add .
-  duration: 0.10125136 seconds
+# meow execution report
+generated: 2025-03-15 16:39:13
 
-step: commit changes
-  command: git commit -m this should work
-  duration: 0.10142398 seconds
-  output: [v1 40eb192] this should work
- 2 files changed, 10 insertions(+), 9 deletions(-)
+## summary
+total steps: 3
+total duration: 3.119 seconds
 
+## steps
 
-step: push changes
-  command: git push
-  duration: 2.70560789 seconds
+### step 1: stage changes
+command: `git add .`
+duration: 0.101 seconds
+status: ✓ success
 
-step: TOTAL
-  command: N/A
-  duration: 2.90875316 seconds
+### step 2: commit changes
+command: `git commit -m vro this cat`
+duration: 0.104 seconds
+status: ✓ success
 
-total duration: 2.90875316 seconds
+```
+[v1 1168c4b] vro this cat
+ Committer: luna <luna@192.168.1.17>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 2...
+[output truncated]
+```
+
+### step 3: push changes
+command: `git push`
+duration: 2.913 seconds
+status: ✓ success
+
+## performance summary
+
+longest steps:
+1. push changes: 2.913s
+2. commit changes: 0.104s
+3. stage changes: 0.101s
+
+total execution time: 3.119 seconds

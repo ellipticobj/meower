@@ -4,13 +4,17 @@ from Cython.Compiler import Options # type: ignore
 from config import VERSION # type: ignore
 
 CFLAGS = [
-    "-Oz", 
-    "-flto=4", 
+    "-O3",  # Using O3 instead of Ofast for better compatibility
     "-fno-ident", 
     "-fmerge-all-constants",
     "-fno-unwind-tables",
     "-fno-asynchronous-unwind-tables",
-    "-march=native"
+    "-march=native",
+    "-mtune=native",
+    "-funroll-loops",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-pipe"
 ]
 
 LDFLAGS = [
@@ -23,23 +27,30 @@ LDFLAGS = [
 
 MACROS = [
     ('PY_SSIZE_T_CLEAN', "1"),
-    ('CYTHON_USE_PYLONG_INTERNALS', "0"),
-    ('CYTHON_FAST_THREAD_STATE', "0"),
+    ('CYTHON_USE_PYLONG_INTERNALS', "0"),  # Not compatible with Python 3.13
+    ('CYTHON_FAST_THREAD_STATE', "0"),     # Not compatible with Python 3.13
     ('CYTHON_NO_PYINIT_EXPORT', "1"),
-    ('CYTHON_USE_EXC_INFO_STACK', "0")
+    ('CYTHON_USE_EXC_INFO_STACK', "0"),
+    ('CYTHON_USE_TYPE_SLOTS', "1"),        # Use type slots for performance
+    ('CYTHON_FAST_PYCALL', "1"),           # Fast Python calls
+    ('CYTHON_PROFILE', "0"),               # Disable profiling
+    ('CYTHON_TRACE', "0")                  # Disable tracing
 ]
 
 COMPILERDIRECTIVES={
     'language_level': "3",
     'boundscheck': False,
-    'wraparound': False,
+    'wraparound': True,  # Changed to True to fix negative index issues
     'initializedcheck': False,
     'nonecheck': False,
     'cdivision': True,
+    'cdivision_warnings': False,
     'optimize.unpack_method_calls': True,
     'optimize.inline_defnode_calls': True,
     'optimize.use_switch': True,
-    'c_api_binop_methods': False
+    'infer_types': True,
+    'c_api_binop_methods': False,
+    'fast_getattr': True
 }
 
 
@@ -96,7 +107,7 @@ setup(
             "setup.py"
         ],
         build_dir="build/cython",
-        nthreads=4
+        nthreads=8
     ),
     entry_points={"console_scripts": ["meow=main:main"]},
     zip_safe=False
