@@ -5,7 +5,7 @@ from colorama import init, Fore, Style # type: ignore
 from argparse import ArgumentParser, Namespace
 from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES # type: ignore
 from core.pipeline import Pipeline # type: ignore
-from utils.loggers import printinfo, spacer, success, error # type: ignore
+from utils.loggers import printinfo, spacer, error # type: ignore
 from utils.helpers import ( # type: ignore
     validateargs,
     initcommands,
@@ -110,8 +110,7 @@ def main() -> None:
             reportpath = os.path.join(os.getcwd(), "report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
-        spacer(pbar=pbar)
-        spacer(pbar=pbar)
+    print("😺")
 
 if __name__ == "__main__":
     try:
@@ -119,4 +118,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"\n\n{Fore.YELLOW}{Style.BRIGHT}operation cancelled by user{Style.RESET_ALL}")
         sys.exit(1)
-    success("😺")
