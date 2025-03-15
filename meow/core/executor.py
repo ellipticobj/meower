@@ -129,10 +129,11 @@ def runcmd(
                 if result and captureoutput and result.stdout:
                     printoutput(result=result, flags=flags, pbar=innerpbar, mainpbar=pbar)
                 
-                # complete progress display
+                # complete progress display and close
                 innerpbar.n = 100
                 innerpbar.colour = 'green'
                 innerpbar.refresh()
+                innerpbar.close()
                 
                 if printsuccess:
                     success("    ✓ completed successfully", pbar=innerpbar)

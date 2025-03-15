@@ -5,7 +5,7 @@ from colorama import init, Fore, Style # type: ignore
 from argparse import ArgumentParser, Namespace
 from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES # type: ignore
 from core.pipeline import Pipeline # type: ignore
-from utils.loggers import printinfo, spacer, error # type: ignore
+from utils.loggers import printinfo, spacer, error, success # type: ignore
 from utils.helpers import ( # type: ignore
     validateargs,
     initcommands,
@@ -110,7 +110,12 @@ def main() -> None:
             reportpath = os.path.join(os.getcwd(), "report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
-    print("😺")
+        # ensure progress bar is closed properly
+        pbar.close()
+    
+    # add final spacing and cat after progress bar context is closed
+    spacer()
+    success("😺")
 
 if __name__ == "__main__":
     try:

@@ -73,11 +73,12 @@ class Pipeline:
         totaltime = time() - starttime
         self.report.append({"step": "TOTAL", "duration": totaltime})
         
-        # complete bar
-        if self.pbar.n < self.pbar.total:
-            self.pbar.n = self.pbar.total
-        self.pbar.colour = 'green'
-        self.pbar.refresh()
+        # complete bar - ensure it's set to 100%
+        if self.pbar and self.pbar.n < self.pbar.total:
+            self.pbar.n = self.pbar.total - 1  # set to just before completion
+            self.pbar.update(1)  # update to ensure proper rendering
+            self.pbar.colour = 'green'
+            self.pbar.refresh()  # make sure display is updated
 
     def generatereport(self, saveto: Optional[str] = None, pbar: Optional[tqdm] = None) -> None:
         '''generates report and saves to saveto if saveto is provided'''
