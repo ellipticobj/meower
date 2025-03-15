@@ -4,17 +4,26 @@ set -euo pipefail
 rm -rf temp dist build *.so *.pyd
 mkdir -p temp
 
-export CFLAGS="-O3 -march=native -flto -fno-semantic-interposition -fomit-frame-pointer"
-export LDFLAGS="-O3 -flto -Wl,--as-needed"
+export CFLAGS="-O3 -march=native -mtune=native -fno-semantic-interposition -fomit-frame-pointer -funroll-loops -ffunction-sections -fdata-sections -pipe"
+export LDFLAGS="-O3 -Wl,--as-needed,--gc-sections"
 
 pip install --no-cache-dir -r ../requirements.txt || echo "no requirements.txt found"
-pip install --no-cache-dir --upgrade cython setuptools
+pip install --no-cache-dir --upgrade cython setuptools wheel
+pip install --no-cache-dir psutil  # For parallel build optimization
+
+# Set number of cores to use for compilation
+export CORES=$(python -c "import os; print(os.cpu_count())")
+echo "Building with $CORES cores"
 
 python local-setup.py build_ext \
     --build-lib=temp \
     --build-temp=temp/build_cython \
     --inplace \
-    --force
+    --force \
+    --parallel=$CORES
+
+# Run PyInstaller with optimized settings
+echo "Building with PyInstaller using optimized settings..."
 
 python -m PyInstaller \
     -n meow \
@@ -22,7 +31,9 @@ python -m PyInstaller \
     --strip \
     -d noarchive \
     --optimize 2 \
-    --onefile main.py \
+    --onefile \
+    --noupx \
+    main.py \
     --distpath=./dist \
     --log-level=ERROR \
     --runtime-tmpdir=. \
@@ -60,7 +71,8 @@ rm -rf *.spec
 #     fi 
 # fi
 
-strip --strip-all -R .comment -R .note -R .gnu.version dist/meow
+# Standard stripping to ensure compatibility
+strip --strip-all dist/meow
 objcopy --strip-unneeded \
         --remove-section=.note* \
         --remove-section=.comment \
@@ -74,7 +86,8 @@ file dist/meow
 echo -e "\ninstall to /usr/local/bin? [Y/n]"
 read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-    echo "executable available at: $(pwd)/dist/meow"
+    mv "dist/meow" "./dist/meow-$(uname -m)"
+    echo "executable available at: $(pwd)/dist/meow-$(uname -m)"
 else
     sudo mv "dist/meow" "/usr/bin/meow"
     echo "installed to /usr/bin/meow"

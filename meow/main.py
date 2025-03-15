@@ -114,7 +114,7 @@ def main() -> None:
         pbar.close()
     
     print()
-    success("😺")
+    print("😺")
 
 if __name__ == "__main__":
     try:
