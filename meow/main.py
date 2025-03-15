@@ -110,9 +110,9 @@ def main() -> None:
             reportpath = os.path.join(os.getcwd(), "report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
-        # final success message within progress bar context
         spacer(pbar=pbar)
-        success("😺", pbar=pbar)
+    spacer()
+    success("😺")
 
 if __name__ == "__main__":
     try:
