@@ -58,11 +58,11 @@ def unthreadedloadinganimation(
     '''unthreaded loading animation'''
     frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     frame: int = 0
-    formatted_message: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    formattedmessage: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
     endtime: float = time() + duration
     
     while time() < endtime:
-        stdout.write(f'\r{frames[frame]} {formatted_message}')
+        stdout.write(f'\r{frames[frame]} {formattedmessage}')
         stdout.flush()
         sleep(0.1)
         frame = (frame + 1) % len(frames)

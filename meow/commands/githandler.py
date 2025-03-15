@@ -2,17 +2,20 @@ from typing import List, Dict
 from sys import exit
 from tqdm import tqdm # type: ignore
 from colorama import Fore, Style # type: ignore
+from config import INTERACTIVECMDS, SPECIALSUBCOMMANDHANDLING # type: ignore
 from core.executor import runcmd # type: ignore
 from utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
 from utils.helpers import list2cmdline, getgitcommands # type: ignore
 from utils.loggers import error # type: ignore
 
 def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
+    """handle any git command through the meow wrapper"""
     gitcmd = args[1]
     commandargs = args[2:] if len(args) > 2 else []
     
-    if gitcmd == "log":
-        cmd = ["git", "log"] + commandargs
+    # handle interactive commands separately
+    if gitcmd in INTERACTIVECMDS:
+        cmd = ["git", gitcmd] + commandargs
         result = runcmd(cmd, captureoutput=False)
         exit(result.returncode if result else 1)
     
@@ -26,17 +29,23 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
         ) as mainpbar:
             mainpbar.update(10)
             
-            loadingmsg = messages.get(gitcmd, "mrrping...")
+            loadingmsg = messages.get(gitcmd, f"running git {gitcmd}...")
             
             animation = startloadinganimation(loadingmsg)
             
+            # get the appropriate git commands
             precmd, cmd = getgitcommands(gitcmd, commandargs)
             lastcmdstr = list2cmdline(cmd)
             
+            # run pre-command if needed
             if precmd:
                 runcmd(precmd, pbar=mainpbar)
             
-            result = runcmd(cmd, pbar=mainpbar)
+            # check for special subcommand handling
+            isinteractive = determineifinteractive(gitcmd, commandargs)
+            
+            # run the main command
+            result = runcmd(cmd, pbar=mainpbar, isinteractive=isinteractive)
             
             stoploadinganimation(animation)
             
@@ -47,5 +56,27 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
             exit(0 if result and result.returncode == 0 else 1)
     
     except KeyboardInterrupt:
-        error(f"{Fore.CYAN}user interrupted")
+        error("user interrupted")
         exit(1)
+
+def determineifinteractive(gitcmd: str, commandargs: List[str]) -> bool:
+    """determine if a command should be run in interactive mode"""
+    # base interactive commands
+    if gitcmd in INTERACTIVECMDS:
+        return True
+    
+    # commit with no message is interactive
+    if gitcmd == "commit" and not any(arg.startswith("-m") for arg in commandargs) and "-m" not in commandargs:
+        return True
+    
+    # check for special subcommands
+    if gitcmd in SPECIALSUBCOMMANDHANDLING and commandargs:
+        subcommand = commandargs[0].lstrip('-')
+        if subcommand in SPECIALSUBCOMMANDHANDLING[gitcmd]:
+            return True
+    
+    # check for editor-based commands
+    if (gitcmd == "commit" and "--edit" in commandargs) or (gitcmd == "tag" and "-e" in commandargs):
+        return True
+    
+    return False

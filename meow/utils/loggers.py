@@ -141,14 +141,14 @@ def printoutput(
                         info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
 def formatcommit(
-        commit_hash: str, 
+        commithash: str, 
         author: str, 
         date: str, 
         message: str
         ) -> str:
     '''formats commit for output'''
     return (
-        f"\n      {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}\n"
+        f"\n      {Fore.YELLOW}commit {commithash}{Style.RESET_ALL}\n"
         f"      author: {Fore.CYAN}{author}{Style.RESET_ALL}\n"
         f"      date:   {date}\n"
         f"      message:\n        {Fore.GREEN}{message}{Style.RESET_ALL}"
@@ -168,7 +168,7 @@ def showcommitresult(
             parts = output.split('|')
             if len(parts) == 4:
                 info(formatcommit(
-                    commit_hash=parts[0][:7],
+                    commithash=parts[0][:7],
                     author=parts[1],
                     date=parts[2],
                     message=parts[3]
