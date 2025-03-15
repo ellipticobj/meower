@@ -6,6 +6,9 @@ mkdir -p temp
 
 export CFLAGS="-O3 -march=native -flto -fno-semantic-interposition -fomit-frame-pointer"
 export LDFLAGS="-O3 -flto -Wl,--as-needed"
+export CORES=$(python -c "import os; print(os.cpu_count())")
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+export MAKEFLAGS="-j$CORES"
 
 pip install --no-cache-dir -r ../requirements.txt || echo "no requirements.txt found"
 pip install --no-cache-dir --upgrade cython setuptools
@@ -14,7 +17,9 @@ python local-setup.py build_ext \
     --build-lib=temp \
     --build-temp=temp/build_cython \
     --inplace \
-    --force
+    --force \
+    --parallel=$CORES \
+    --verbose
 
 python -m PyInstaller \
     -n meow \
@@ -47,18 +52,6 @@ python -m PyInstaller \
 
 mv *.so ./temp/
 rm -rf *.spec
-
-# upx unneeded
-# echo -e "\nuse upx compression? [Y/n]"
-# read -r CONTINUE
-# if [[ ! "$CONTINUE" =~ ^[Nn]$ ]]; then
-#     if command -v upx &> /dev/null; then
-#         echo "compressing with upx..."
-#         upx --best --lzma --compress-icons=0 dist/meow
-#     else
-#         echo "upx not found, skipping compression"
-#     fi 
-# fi
 
 strip --strip-all -R .comment -R .note -R .gnu.version dist/meow
 objcopy --strip-unneeded \

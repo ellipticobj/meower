@@ -18,7 +18,6 @@ LDFLAGS = [
     "-Wl,--build-id=none",
     "-Wl,-z,norelro",
     "-Wl,--hash-style=sysv",
-    "-Wl,--no-rosegment",
     "-nostdlib"
 ]
 

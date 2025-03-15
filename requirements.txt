@@ -3,3 +3,4 @@ tqdm
 cython
 setuptools
 argparse
+pyinstaller
