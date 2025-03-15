@@ -1,11 +1,12 @@
 import sys
+import shlex
 from os import getcwd
-from config import VERSION
+from config import VERSION # type: ignore
 from typing import List, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
-from utils.loggers import error, info, spacer
+from utils.loggers import error, info, spacer # type: ignore
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -56,7 +57,7 @@ def validateargs(args: Namespace) -> None:
 
 def getpipelinesteps(args: Namespace) -> List:
     '''get pipeline steps'''
-    from core.pipeline import PipelineStep
+    from core.pipeline import PipelineStep # type: ignore
     steps: List[PipelineStep] = []
 
     def getstatus(args: Namespace):
@@ -144,19 +145,20 @@ def _parseupstreamargs(args: Namespace, pushcmd: List[str]) -> List[str]:
     '''parse --set-upstream args'''
     remote: str
     branch: str
+    
     if len(args.upstream) == 1 and '/' in args.upstream[0]:
         remote, branch = args.upstream[0].split('/')
         pushcmd.extend(["--set-upstream", remote, branch])
     elif len(args.upstream) == 2:
         pushcmd.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
     else:
-        error("invalid upstream format. Use 'REMOTE BRANCH' or 'REMOTE/BRANCH'")
+        error("invalid upstream format. use 'remote branch' or 'remote/branch'")
         sys.exit(1)
     
     return pushcmd
 
 def getgitcommands(
-    gitcommand: str, 
+    gitcommand: str,
     commandargs: List[str]
 ) -> Tuple[List[str], List[str]]:
     '''get commands based on input'''
@@ -166,9 +168,9 @@ def getgitcommands(
         if ["-m"] in commandargs:
             return ["git", "add", "."], ["git", "commit"] + commandargs
         elif commandargs:
-            return ["git", "add", "."], ["git", "commit"] + (["-m"] + commandargs)
+            return ["git", "add", "."], ["git", "commit"] + ["-m"] + commandargs
         else:
-            return ["git", "add", "."], ["git", "commit"] + ["--allow-empty-message"]
+            return ["git", "add", "."], ["git", "commit", "--allow-empty-message"]
     elif gitcommand == "pull":
         return [], ["git", "pull"] + commandargs + ["--autostash"]
     elif gitcommand == "clone":

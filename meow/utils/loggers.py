@@ -89,6 +89,7 @@ def printoutput(
         ) -> None:
     '''prints commands output'''
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
+    outputl: List[str]
     # TODO: depracate the giant block below and change it to something like this diff block.
     if 'diff' in list2cmdline(result.args):
         printdiff(outputstr=outputstr, pbar=pbar)
@@ -106,22 +107,38 @@ def printoutput(
             # output everything
             info(f"    i {Fore.CYAN}{outputstr}", mainpbar)
         else:
-            messagestr = " ".join(flags.message) if isinstance(flags.message, list) else flags.message
-            # check for specific outputs
+            if hasattr(flags, "message"):
+                messagestr = " ".join(flags.message) if isinstance(flags.message, list) else flags.message
+            else:
+                messagestr = "" # TODO: ?
+            # check for specific output
             if 'Everything up-to-date' in outputstr:
                 info(f"    i {Fore.CYAN}everything up-to-date", mainpbar)
             elif 'nothing to commit' in outputstr:
                 info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
             elif 'create mode' in outputstr or 'delete mode' in outputstr:
                 # show additions/deletions
-                outputl: List[str] = outputstr.split('\n')
-                for line in outputl: # make sure everything is indented properly
-                    info(f"    i {Fore.BLACK}{line}", mainpbar)
+                outputl = outputstr.split('\n')
+                # limit output to first 4 lines with count of remaining lines
+                if len(outputl) > 5:
+                    for line in outputl[:4]:
+                        info(f"    i {Fore.BLACK}{line}", mainpbar)
+                    info(f"    i {Fore.CYAN}...({len(outputl) - 4} lines remaining)", mainpbar)
+                else:
+                    for line in outputl:
+                        info(f"    i {Fore.BLACK}{line}", mainpbar)
             elif len(outputstr) < 200:  # show short messages
                 if messagestr in outputstr: # dont duplicate commit message
                     pass
                 else:
-                    info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+                    outputl = outputstr.split('\n')
+                    # limit output to first 4 lines with count of remaining lines
+                    if len(outputl) > 5:
+                        for line in outputl[:4]:
+                            info(f"    i {Fore.BLACK}{line}", mainpbar)
+                        info(f"    i {Fore.CYAN}...({len(outputl) - 4} lines remaining)", mainpbar)
+                    else:
+                        info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
 def formatcommit(
         commit_hash: str, 
@@ -157,7 +174,14 @@ def showcommitresult(
                     message=parts[3]
                 ), mainpbar)
         else:
-            info(f"      i {Fore.CYAN}{output}", mainpbar)
+            # Limit output to first 4 lines with count of remaining lines
+            lines = output.split('\n')
+            if len(lines) > 5:
+                for line in lines[:4]:
+                    info(f"      i {Fore.CYAN}{line}", mainpbar)
+                info(f"      i {Fore.CYAN}...({len(lines) - 4} lines remaining)", mainpbar)
+            else:
+                info(f"      i {Fore.CYAN}{output}", mainpbar)
     except Exception as e:
         error(f"error showing commit: {str(e)}", mainpbar)
 
@@ -167,8 +191,15 @@ def showresult(
         ) -> None:
     '''displays normal results'''
     if result.returncode == 0:
-        for line in result.stdout.decode().split("\n"):
-            info(f"    i {Fore.CYAN}{line}", mainpbar)
+        lines = result.stdout.decode().split("\n")
+        # limit output to first 4 lines with count of remaining lines
+        if len(lines) > 5:
+            for line in lines[:4]:
+                info(f"    i {Fore.CYAN}{line}", mainpbar)
+            info(f"    i {Fore.CYAN}...({len(lines) - 4} lines remaining)", mainpbar)
+        else:
+            for line in lines:
+                info(f"    i {Fore.CYAN}{line}", mainpbar)
 
 def spacer(pbar: Optional[tqdm] = None, height: int = 1) -> str:
     for _ in range(height):
