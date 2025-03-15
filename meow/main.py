@@ -111,8 +111,7 @@ def main() -> None:
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
         spacer(pbar=pbar)
-    spacer()
-    success("😺")
+        spacer(pbar=pbar)
 
 if __name__ == "__main__":
     try:
@@ -120,3 +119,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"\n\n{Fore.YELLOW}{Style.BRIGHT}operation cancelled by user{Style.RESET_ALL}")
         sys.exit(1)
+    success("😺")
