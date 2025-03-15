@@ -95,9 +95,11 @@ def main() -> None:
         position=1,
         leave=True
     ) as pbar:
+        # create and run pipeline
         pipeline = Pipeline(args=args, steps=steps, pbar=pbar)
         pipeline.run()
 
+        # add spacing after completion
         spacer(pbar=pbar)
         
         # generate report
@@ -107,9 +109,10 @@ def main() -> None:
             # generate report in current directory (absolute path)
             reportpath = os.path.join(os.getcwd(), "report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
-
-    spacer(pbar=pbar)
-    success("😺", pbar=pbar)
+        
+        # final success message within progress bar context
+        spacer(pbar=pbar)
+        success("😺", pbar=pbar)
 
 if __name__ == "__main__":
     try:

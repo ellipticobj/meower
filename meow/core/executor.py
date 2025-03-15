@@ -125,8 +125,8 @@ def runcmd(
                 innerpbar.refresh()
                 stoploadinganimation(threadinfo=animation)
                 
-                # process and display output
-                if result and captureoutput:
+                # process and display output (only if we captured output)
+                if result and captureoutput and result.stdout:
                     printoutput(result=result, flags=flags, pbar=innerpbar, mainpbar=pbar)
                 
                 # complete progress display
@@ -153,8 +153,8 @@ def runcmd(
         # if isgitcmd:
         #     commandtimingcache[" ".join(cmd[0:2])] = time() - starttime
         
-        # process output
-        if result and captureoutput:
+        # process output (only if we captured output)
+        if result and captureoutput and result.stdout:
             printoutput(result, flags, pbar, pbar)
         
         if printsuccess:

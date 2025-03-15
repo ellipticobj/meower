@@ -1,3 +1,4 @@
+import os
 from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
@@ -141,9 +142,16 @@ class Pipeline:
 
         # save or display report
         if saveto:
+            # ensure directory exists
+            report_dir = os.path.dirname(saveto)
+            if report_dir and not os.path.exists(report_dir):
+                os.makedirs(report_dir, exist_ok=True)
+                
+            # write report with proper formatting
             with open(saveto, 'w') as f:
                 f.writelines(output)
             success(message=f"report saved to {saveto}", pbar=pbar)
         else:
+            # display report to console
             for line in output:
                 info(line, pbar=pbar)

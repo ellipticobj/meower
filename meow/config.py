@@ -1,15 +1,26 @@
 from typing import Dict, Final, List
 
-VERSION: Final[str] = "1.0.0-preview2"
+VERSION: Final[str] = "1.0.0-preview3"
 
 # commands that should use captureoutput=False for interactive use
-INTERACTIVECMDS = {"log", "add", "rebase", "bisect", "blame", "cherry-pick", "mergetool", "difftool"}
+INTERACTIVECMDS = {
+    "log", "add", "rebase", "bisect", "blame", 
+    "cherry-pick", "mergetool", "difftool"
+}
 
 # commands that require special handling for certain subcommands
 SPECIALSUBCOMMANDHANDLING = {
-    "branch": ["delete", "move", "copy", "edit-description", "set-upstream", "unset-upstream"],
-    "remote": ["add", "rename", "remove", "set-url", "get-url", "show", "prune", "update"],
-    "config": ["get", "set", "unset", "list", "edit"]
+    "branch": [
+        "delete", "move", "copy", "edit-description", 
+        "set-upstream", "unset-upstream"
+    ],
+    "remote": [
+        "add", "rename", "remove", "set-url", 
+        "get-url", "show", "prune", "update"
+    ],
+    "config": [
+        "get", "set", "unset", "list", "edit"
+    ]
 }
 
 # ai generated because im not a git nerd
