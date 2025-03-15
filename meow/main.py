@@ -113,8 +113,7 @@ def main() -> None:
         # ensure progress bar is closed properly
         pbar.close()
     
-    # add final spacing and cat after progress bar context is closed
-    spacer()
+    print()
     success("😺")
 
 if __name__ == "__main__":
