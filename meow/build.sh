@@ -55,7 +55,7 @@ python -m PyInstaller \
     --exclude-module unittest \
     --exclude-module multiprocessing \
     --exclude-module=pyi_rth_inspect \
-    --workpath=temp/build_pyinstaller \
+    --workpath=temp/build_pyinstaller
 
 mv *.so ./temp/
 rm -rf *.spec
@@ -79,8 +79,8 @@ if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
 else
     sudo mv "dist/meow" "/usr/bin/meow"
     echo "installed to /usr/bin/meow"
+    echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
 fi
 
-echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
 
 rm -rf __pycache__/ build/ temp/

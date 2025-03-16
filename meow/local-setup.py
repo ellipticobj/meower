@@ -4,7 +4,7 @@ from Cython.Compiler import Options # type: ignore
 from config import VERSION # type: ignore
 
 CFLAGS = [
-    "-O3",  # Using O3 instead of Ofast for better compatibility
+    "-O3",
     "-fno-ident", 
     "-fmerge-all-constants",
     "-fno-unwind-tables",
@@ -40,7 +40,7 @@ MACROS = [
 COMPILERDIRECTIVES={
     'language_level': "3",
     'boundscheck': False,
-    'wraparound': True,  # Changed to True to fix negative index issues
+    'wraparound': True,
     'initializedcheck': False,
     'nonecheck': False,
     'cdivision': True,
