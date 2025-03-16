@@ -93,7 +93,7 @@ def main() -> None:
         desc=f"{Fore.RED}meowing...{Style.RESET_ALL}",
         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
         position=1,
-        leave=True
+        leave=False
     ) as pbar:
         # create and run pipeline
         pipeline = Pipeline(args=args, steps=steps, pbar=pbar)
