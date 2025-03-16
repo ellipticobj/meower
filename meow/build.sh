@@ -7,16 +7,11 @@ mkdir -p temp
 export CFLAGS="-O3 -march=native -flto -fno-semantic-interposition -fomit-frame-pointer"
 export LDFLAGS="-O3 -flto -Wl,--as-needed"
 export CORES=$(python -c "import os; print(os.cpu_count())")
-export SETUPTOOLS_USE_DISTUTILS=stdlib
 export MAKEFLAGS="-j$CORES"
 
-pip install --no-cache-dir -r ../requirements.txt || echo "no requirements.txt found"
-pip install --no-cache-dir --upgrade cython setuptools wheel
-pip install --no-cache-dir psutil  # For parallel build optimization
+pip install -r ../requirements.txt -U --no-cache-dir  || echo "no requirements.txt found"
 
-# Set number of cores to use for compilation
-export CORES=$(python -c "import os; print(os.cpu_count())")
-echo "Building with $CORES cores"
+echo "building with $CORES cores"
 
 python local-setup.py build_ext \
     --build-lib=temp \
