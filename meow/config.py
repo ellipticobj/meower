@@ -1,6 +1,6 @@
 from typing import Dict, Final, List
 
-VERSION: Final[str] = "1.0.0-preview3"
+VERSION: Final[str] = "1.0.0"
 
 # commands that should use captureoutput=False for interactive use
 INTERACTIVECMDS = {
