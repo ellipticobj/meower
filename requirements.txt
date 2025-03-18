@@ -3,4 +3,5 @@ tqdm
 cython
 setuptools
 argparse
-pyinstaller
+wheel
+psutil
