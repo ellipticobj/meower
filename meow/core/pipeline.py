@@ -144,9 +144,9 @@ class Pipeline:
         # save or display report
         if saveto:
             # ensure directory exists
-            report_dir = os.path.dirname(saveto)
-            if report_dir and not os.path.exists(report_dir):
-                os.makedirs(report_dir, exist_ok=True)
+            reportdir = os.path.dirname(saveto)
+            if reportdir and not os.path.exists(reportdir):
+                os.makedirs(reportdir, exist_ok=True)
                 
             # write report with proper formatting
             with open(saveto, 'w') as f:
