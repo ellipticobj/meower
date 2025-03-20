@@ -9,8 +9,8 @@ CFLAGS = [
     "-fmerge-all-constants",
     "-fno-unwind-tables",
     "-fno-asynchronous-unwind-tables",
-    "-march=native",
-    "-mtune=native",
+    
+    
     "-funroll-loops",
     "-ffunction-sections",
     "-fdata-sections",

@@ -94,14 +94,14 @@ file dist/meow
 cp "dist/meow" "./dist/meow-${ARCH}"
 echo "executable at: $(pwd)/dist/meow-${ARCH}"
 
-echo -e "\nInstall to /usr/local/bin? [Y/n]"
+echo -e "\nInstall to /usr/bin? [Y/n]"
 read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-    echo "Executable available at: $(pwd)/dist/meow-${ARCH}"
+    echo "executable available at: $(pwd)/dist/meow-${ARCH}"
 else
-    sudo mv "dist/meow" "/usr/local/bin/meow"
-    echo "Installed to /usr/local/bin/meow"
-    echo "Uninstall with 'sudo rm -rf /usr/local/bin/meow'"
+    sudo mv "dist/meow" "/usr/bin/meow"
+    echo "installed to /usr/bin/meow"
+    echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
 fi
 
 rm -rf __pycache__/ build/ temp/
