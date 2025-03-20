@@ -2,11 +2,11 @@ from typing import List, Dict
 from sys import exit
 from tqdm import tqdm # type: ignore
 from colorama import Fore, Style # type: ignore
-from config import INTERACTIVECMDS, SPECIALSUBCOMMANDHANDLING # type: ignore
-from core.executor import runcmd # type: ignore
-from utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
-from utils.helpers import list2cmdline, getgitcommands # type: ignore
-from utils.loggers import error # type: ignore
+from meow.config import INTERACTIVECMDS, SPECIALSUBCOMMANDHANDLING
+from meow.core.executor import runcmd
+from meow.utils.loaders import startloadinganimation, stoploadinganimation
+from meow.utils.helpers import list2cmdline, getgitcommands
+from meow.utils.loggers import error
 
 def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     """handle any git command through the meow wrapper"""

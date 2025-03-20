@@ -1,19 +1,40 @@
 import sys
 import os
+from argparse import ArgumentParser, Namespace
+
 from tqdm import tqdm # type: ignore
 from colorama import init, Fore, Style # type: ignore
-from argparse import ArgumentParser, Namespace
-from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES # type: ignore
-from core.pipeline import Pipeline # type: ignore
-from utils.loggers import printinfo, spacer, error, success # type: ignore
-from utils.helpers import ( # type: ignore
-    validateargs,
-    initcommands,
-    displayheader,
-    displaysteps,
-    getpipelinesteps
-)
-from commands.githandler import handlegitcommands # type: ignore
+
+try:
+    # when running as a module: python -m meow.main
+    from meow.config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
+    from meow.core.pipeline import Pipeline
+    from meow.utils.loggers import printinfo, spacer, error
+    from meow.utils.helpers import (
+        validateargs,
+        initcommands,
+        displayheader,
+        displaysteps,
+        getpipelinesteps
+    )
+    from meow.commands.githandler import handlegitcommands
+    from meow.utils.gitutils import isgitrepo as isgitrepofunc
+except ModuleNotFoundError:
+    # when running directly: python main.py
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    
+    from meow.config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
+    from meow.core.pipeline import Pipeline
+    from meow.utils.loggers import printinfo, spacer, error
+    from meow.utils.helpers import (
+        validateargs,
+        initcommands,
+        displayheader,
+        displaysteps,
+        getpipelinesteps
+    )
+    from meow.commands.githandler import handlegitcommands
+    from meow.utils.gitutils import isgitrepo as isgitrepofunc
 
 def main() -> None:
     '''entry point'''
@@ -32,8 +53,8 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
     
-    # check if we're in a git repository
-    isgitrepo = os.path.exists(os.path.join(os.getcwd(), '.git')) or os.popen('git rev-parse --is-inside-work-tree 2>/dev/null').read().strip() == 'true'
+    # check if we're in a git repository using our utility function
+    isgitrepo = isgitrepofunc()
     
     # handle direct git command syntax: meow <git-command> [args...]
     if len(sys.argv) >= 2:

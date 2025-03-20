@@ -34,3 +34,8 @@ build:
 
 # screenshots
 ![screenshot](assets/screenshot.png)
+
+# roadmap
+- debug everything
+- release a stable build
+- feature improvements (ask for user input for certain errors like no email detected)

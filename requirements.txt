@@ -5,3 +5,4 @@ setuptools
 argparse
 wheel
 psutil
+gitpython

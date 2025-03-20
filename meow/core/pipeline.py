@@ -5,9 +5,9 @@ from argparse import Namespace
 from collections.abc import Callable
 from typing import List, Optional, Dict, Union, Any
 
-from core.executor import runcmd # type: ignore
+from meow.core.executor import runcmd
 
-from utils.loggers import info, success # type: ignore
+from meow.utils.loggers import info, success
 
 '''pipeline related functions'''
 

@@ -1,11 +1,11 @@
 import sys
 from os import getcwd
-from config import VERSION # type: ignore
+from meow.config import VERSION # type: ignore
 from typing import List, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
-from utils.loggers import error, info, spacer # type: ignore
+from meow.utils.loggers import error, info, spacer
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -56,7 +56,7 @@ def validateargs(args: Namespace) -> None:
 
 def getpipelinesteps(args: Namespace) -> List:
     '''get pipeline steps'''
-    from core.pipeline import PipelineStep # type: ignore
+    from meow.core.pipeline import PipelineStep # type: ignore
     steps: List[PipelineStep] = []
 
     def getstatus(args: Namespace):
@@ -102,10 +102,14 @@ def _getcommitcommand(args: Namespace) -> List[str]:
     commitcmd = ["git", "commit"]
     
     if args.message:
+        # Properly handle message as a single string with quotes to avoid argument splitting
         message = " ".join(args.message) if isinstance(args.message, list) else args.message
-        commitcmd.extend(["-m", message])
+        # Pass the message in quotes to preserve spaces
+        commitcmd.extend(["-m", f"{message}"])
     elif args.nomsg:
         commitcmd.append("--allow-empty-message")
+        commitcmd.append("-m")
+        commitcmd.append("")
     
     if args.amend:
         commitcmd.append("--amend")
@@ -175,10 +179,12 @@ def getgitcommands(
             return ["git", "add", "."], ["git", "commit"] + commandargs
         elif commandargs:
             # if arguments exist but no explicit message, treat args as message
-            return ["git", "add", "."], ["git", "commit", "-m"] + commandargs
+            # Join all arguments into a single quoted message to preserve spaces
+            message = " ".join(commandargs)
+            return ["git", "add", "."], ["git", "commit", "-m", f"{message}"]
         else:
             # no args, allow empty message for interactive commit
-            return ["git", "add", "."], ["git", "commit", "--allow-empty-message"]
+            return ["git", "add", "."], ["git", "commit", "--allow-empty-message", "-m", ""]
     elif gitcommand == "pull":
         # add --autostash by default unless explicitly disabled
         if "--no-autostash" not in commandargs:

@@ -33,11 +33,12 @@ python -m PyInstaller \
     --distpath=./dist \
     --log-level=ERROR \
     --runtime-tmpdir=. \
-    --add-data="config.py:." \
+    --add-data="config.py:meow" \
     --hidden-import=tqdm \
-    --hidden-import=helpers \
-    --hidden-import=loaders \
-    --hidden-import=loggers \
+    --hidden-import=meow.utils.helpers \
+    --hidden-import=meow.utils.loaders \
+    --hidden-import=meow.utils.loggers \
+    --hidden-import=meow.utils.gitutils \
     --hidden-import=inspect \
     --hidden-import=colorama \
     --hidden-import=encodings \

@@ -1,7 +1,7 @@
 from setuptools import setup, Extension # type: ignore
 from Cython.Build import cythonize # type: ignore
 from Cython.Compiler import Options # type: ignore
-from config import VERSION # type: ignore
+from meow.config import VERSION
 
 CFLAGS = [
     "-O3",
@@ -59,35 +59,35 @@ Options.embed_pos_in_docstring = False
 
 extensions = [
     Extension(
-        "helpers", 
+        "meow.utils.helpers", 
         ["utils/helpers.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS,
     ),
     Extension(
-        "loaders",
+        "meow.utils.loaders",
         ["utils/loaders.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "loggers",
+        "meow.utils.loggers",
         ["utils/loggers.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "executor",
+        "meow.core.executor",
         ["core/executor.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "pipeline",
+        "meow.core.pipeline",
         ["core/pipeline.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
@@ -109,6 +109,6 @@ setup(
         build_dir="build/cython",
         nthreads=8
     ),
-    entry_points={"console_scripts": ["meow=main:main"]},
+    entry_points={"console_scripts": ["meow=meow.main:main"]},
     zip_safe=False
 )

@@ -1,5 +1,5 @@
 from sys import exit
-from os import getcwd
+import os
 from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
@@ -7,12 +7,141 @@ from colorama import Fore, Style # type: ignore
 from typing import List, Optional, Dict
 from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError, PIPE
 
-from utils.helpers import suggestfix, list2cmdline # type: ignore
-from utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
-from utils.loggers import error, info, printcmd, printoutput, success, spacer # type: ignore
+from meow.utils.helpers import suggestfix, list2cmdline # type: ignore
+from meow.utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
+from meow.utils.loggers import error, info, printcmd, printoutput, success, spacer # type: ignore
+from meow.utils.gitutils import getreporoot, getgitcmdenv, rungitcmd # type: ignore
 
 # cache for storing command execution times
 # commandtimingcache: Dict[str, float] = {}
+
+def run_optimized_git_command(
+    cmd: List[str],
+    flags: Optional[Namespace] = None,
+    pbar: Optional[tqdm] = None,
+    withprogress: bool = True,
+    captureoutput: bool = True
+) -> Optional[CompletedProcess]:
+    '''
+    Optimized function to run git commands using GitPython when available
+    
+    Uses the GitRunner class which is more reliable for git credential handling
+    '''
+    if not cmd or len(cmd) < 2 or cmd[0] != "git":
+        # not a git command then use standard runcmd
+        return runcmd(cmd, flags, pbar, withprogress, captureoutput)
+    
+    # get git command (without "git" prefix)
+    gitcmd = cmd[1:]
+    
+    # get environment with git credential handling
+    env = getgitcmdenv()
+    
+    # determine working directory - use git root for git commands if available
+    workdir = getreporoot()
+    if workdir:
+        # Change to git repo root
+        os.chdir(workdir)
+    
+    # format the command string for display
+    cmdstr = list2cmdline(cmd)
+    
+    if flags and flags.dry:
+        printcmd(list2cmdline(cmd), pbar)
+        return None
+    
+    # log command execution
+    spacer(pbar=pbar)
+    info("    running command:", pbar)
+    printcmd(f"      $ {cmdstr}", pbar)
+    
+    if withprogress:
+        with tqdm(
+            total=100,
+            desc=f"{Fore.CYAN}  mrrping...{Style.RESET_ALL}",
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+            position=0,
+            leave=False
+        ) as innerpbar:
+            innerpbar.n = 20
+            animation = startloadinganimation()
+
+            returncode: int
+            stdout: str
+            stderr: str
+            
+            returncode, stdout, stderr = rungitcmd(gitcmd, env)
+
+            innerpbar.n = 70
+            innerpbar.refresh()
+            stoploadinganimation(threadinfo=animation)
+            
+            result = CompletedProcess(
+                args=cmd,
+                returncode=returncode,
+                stdout=stdout.encode('utf-8') if stdout else b'',
+                stderr=stderr.encode('utf-8') if stderr else b''
+            )
+            
+            if captureoutput and stdout:
+                printoutput(result=result, flags=flags or Namespace(verbose=False), 
+                            pbar=innerpbar, mainpbar=pbar)
+            
+            innerpbar.n = 100
+            innerpbar.colour = 'green'
+            innerpbar.refresh()
+            innerpbar.close()
+            
+            if returncode == 0:
+                success("    ✓ completed successfully", pbar=innerpbar)
+                return result
+            else:
+                error(f"\n❌ command failed with exit code {returncode}:", pbar)
+                printcmd(f"  $ {cmdstr}", pbar)
+                
+                if stderr:
+                    error(f"{Fore.RED}{stderr}", pbar)
+                    suggestion = suggestfix(stderr)
+                    if suggestion:
+                        error(suggestion, pbar)
+                
+                if flags and flags.cont:
+                    info(f"{Fore.CYAN}continuing despite error...", pbar)
+                    return None
+                else:
+                    exit(returncode)
+    else:
+        returncode, stdout, stderr = rungitcmd(gitcmd, env)
+        
+        result = CompletedProcess(
+            args=cmd,
+            returncode=returncode,
+            stdout=stdout.encode('utf-8') if stdout else b'',
+            stderr=stderr.encode('utf-8') if stderr else b''
+        )
+        
+        if returncode == 0:
+            if captureoutput and stdout:
+                printoutput(result, flags or Namespace(verbose=False), pbar, pbar)
+            success("    ✓ completed successfully", pbar=pbar)
+            return result
+        else:
+            error(f"\n❌ command failed with exit code {returncode}:", pbar)
+            printcmd(f"  $ {cmdstr}", pbar)
+            
+            if stderr:
+                error(f"{Fore.RED}{stderr}", pbar)
+                suggestion = suggestfix(stderr)
+                if suggestion:
+                    error(suggestion, pbar)
+            
+            if flags and flags.cont:
+                info(f"{Fore.CYAN}continuing despite error...", pbar)
+                return None
+            else:
+                exit(returncode)
+    
+    return None
 
 def runcmd(
     cmd: List[str],
@@ -41,6 +170,15 @@ def runcmd(
 
     if not cmd:
         return None
+        
+    if len(cmd) > 1 and cmd[0] == "git" and not isinteractive:
+        return run_optimized_git_command(
+            cmd=cmd,
+            flags=flags,
+            pbar=pbar,
+            withprogress=withprogress,
+            captureoutput=captureoutput
+        )
 
     # print command for dry run
     if flags.dry:
@@ -71,22 +209,23 @@ def runcmd(
         # enhanced environment variables
         cmdenv = env or {}
         
-        # start timing for performance tracking
-        starttime = time()
+        # For git commands, enhance the environment with git-specific settings
+        if isgitcmd:
+            git_env = getgitcmdenv()
+            cmdenv.update(git_env)
         
         if interactive:
             # run interactive commands directly
+            # Determine working directory - use git root for git commands if available
+            work_dir = getreporoot() if isgitcmd else os.getcwd()
+            
             result = runsubprocess(
                 cmd, 
                 check=True, 
-                cwd=getcwd(), 
+                cwd=work_dir, 
                 capture_output=False,
                 env=cmdenv
             )
-            
-            # update command timing cache
-            # if isgitcmd:
-            #     commandtimingcache[" ".join(cmd[0:2])] = time() - starttime
                 
             return result
 
@@ -104,10 +243,13 @@ def runcmd(
                 animation = startloadinganimation()
                 
                 # run command with optimized capture settings
+                # Determine working directory - use git root for git commands if available
+                work_dir = getreporoot() if isgitcmd else os.getcwd()
+                
                 result = runsubprocess(
                     cmd, 
                     check=True, 
-                    cwd=getcwd(), 
+                    cwd=work_dir, 
                     stdout=PIPE if captureoutput else None,
                     stderr=PIPE if captureoutput else None,
                     env=cmdenv
@@ -141,10 +283,13 @@ def runcmd(
                 return result
         
         # standard execution without progress display
+        # Determine working directory - use git root for git commands if available
+        work_dir = getreporoot() if isgitcmd else os.getcwd()
+        
         result = runsubprocess(
             cmd, 
             check=True, 
-            cwd=getcwd(), 
+            cwd=work_dir, 
             stdout=PIPE if captureoutput else None,
             stderr=PIPE if captureoutput else None,
             env=cmdenv
