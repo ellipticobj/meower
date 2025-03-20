@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # installer script
-# this downloads a github release executable for the current arch and installs it to the /usr/bin/ directory
+# this downloads a github release executable for the current arch and installs it
 #
 # repo details:
 # https://github.com/REPO_OWNER/REPO_NAME should be the repository you want to download the executable from
@@ -16,7 +16,8 @@
 REPO_OWNER="ellipticobj"
 REPO_NAME="meower"
 EXEC_NAME="meow"
-INSTALL_PATH="/usr/bin/"
+SYSTEM_INSTALL_PATH="/usr/bin/"
+USER_INSTALL_PATH="${HOME}/.local/bin/"
 
 # ------------------------------------
 # helpers
@@ -27,9 +28,8 @@ error_exit() {
 }
 
 # tells the user what this script does
-echo "this script downloads the latest release of ${REPO_OWNER}/${REPO_NAME} and installs it to ${INSTALL_PATH}"
+echo "this script downloads the latest release of ${REPO_OWNER}/${REPO_NAME}"
 
-echo "note: you may be prompted to input your password. this is to move the executable to ${INSTALL_PATH}"
 echo "do you want to install?"
 echo -n "enter to continue or any other key to exit "
 read -r CONTINUE < /dev/tty
@@ -66,11 +66,15 @@ case "$ARCH" in
     x86_64)
         ARCH="x86_64"
         ;;
-    aarch64|arm64)
+    aarch64)
         ARCH="aarch64"
         ;;
+    arm64)
+        ARCH="arm64"
+        SYSTEM_INSTALL_PATH="/usr/local/bin/"
+        ;;
   *)
-    echo "Unsupported architecture: $ARCH"
+    echo "unsupported architecture: $ARCH"
     exit 1
     ;;
 esac
@@ -95,7 +99,7 @@ if [ -z "$LATEST" ]; then
 fi
 
 # gets download url
-# this assumes your release asset is named like this: EXEC_NAME-ARCH (e.g. meows-x86_64)
+# this assumes your release asset is named like this: EXEC_NAME-ARCH (e.g. meow-x86_64)
 DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${LATEST}/${EXEC_NAME}-${ARCH}"
 
 # check if the file exists at the URL before downloading
@@ -111,10 +115,40 @@ if [ "$FILESIZE" -lt 1048576 ]; then
     error_exit "executable not found on remote"
 fi
 
-# installs the file
+# make file executable
 chmod +x "$EXEC_NAME"
-echo "moving executable to ${INSTALL_PATH}${EXEC_NAME}"
-INSTALL_SOURCE="${EXEC_NAME}"
 
-sudo mv "${INSTALL_SOURCE}" "${INSTALL_PATH}${EXEC_NAME}" || error_exit "failed to move the executable."
-echo "installation complete: ${INSTALL_PATH}${EXEC_NAME}"
+# ask where to install
+echo -e "\nwhere would you like to install?"
+echo "1) user only (${USER_INSTALL_PATH})"
+echo "2) system-wide (${SYSTEM_INSTALL_PATH}, requires sudo)"
+read -r -p "choose option [1-2, default=1]: " INSTALL_OPTION
+
+INSTALL_OPTION=${INSTALL_OPTION:-1}
+
+case $INSTALL_OPTION in
+    1)
+        mkdir -p "${USER_INSTALL_PATH}"
+        
+        # install to user directory
+        cp "${EXEC_NAME}" "${USER_INSTALL_PATH}${EXEC_NAME}" || error_exit "failed to copy the executable"
+        echo "installation complete: ${USER_INSTALL_PATH}${EXEC_NAME}"
+        
+        # check if directory is in PATH
+        if [[ ":$PATH:" != *":${USER_INSTALL_PATH}:"* ]]; then
+            echo "note: ${USER_INSTALL_PATH} is not in your PATH"
+            echo "you may want to add it to your shell profile"
+        fi
+        ;;
+    2)
+        # install system-wide
+        echo "installing to ${SYSTEM_INSTALL_PATH}${EXEC_NAME} (requires sudo)"
+        sudo mv "${EXEC_NAME}" "${SYSTEM_INSTALL_PATH}${EXEC_NAME}" || error_exit "failed to move the executable."
+        echo "installation complete: ${SYSTEM_INSTALL_PATH}${EXEC_NAME}"
+        ;;
+    *)
+        echo "invalid option, exiting..."
+        rm -f "${EXEC_NAME}"
+        exit 1
+        ;;
+esac

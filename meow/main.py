@@ -127,9 +127,8 @@ def main() -> None:
         if args.report:
             pipeline.generatereport(pbar=pbar)
         else:
-            # generate report in current directory (absolute path)
-            # reportpath = os.path.join("~/.config/meow/report.txt")
-            reportpath = ""
+            # generate report in config directory (absolute path)
+            reportpath = os.path.expanduser("~/.config/meow/report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
         # ensure progress bar is closed properly

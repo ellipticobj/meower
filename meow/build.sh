@@ -1,18 +1,37 @@
 #!/bin/bash
-set -euo pipefail
 
+# clean up previous builds
 rm -rf temp dist build *.so *.pyd
 mkdir -p temp
 
-export CFLAGS="-O3 -march=native -flto -fno-semantic-interposition -fomit-frame-pointer"
-export LDFLAGS="-O3 -flto -Wl,--as-needed"
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64)
+        # generic x86-64 flags
+        ARCH_FLAGS="-march=x86-64-v2 -mtune=generic"
+        ;;
+    aarch64|arm64)
+        # ARM64 optimizations
+        ARCH_FLAGS="-march=armv8-a+crc -mtune=generic"
+        ;;
+    *)
+        # default case for other architectures
+        ARCH_FLAGS="-mtune=generic"
+        ;;
+esac
+
+# set compiler flags for speed
+export CFLAGS="-O3 ${ARCH_FLAGS} -flto -fno-semantic-interposition -fomit-frame-pointer -pipe"
+export LDFLAGS="-O3 -flto -Wl,--as-needed -Wl,--gc-sections -Wl,--build-id=none"
 export CORES=$(python -c "import os; print(os.cpu_count())")
 export MAKEFLAGS="-j$CORES"
 
-pip install -r ../requirements.txt -U --no-cache-dir  || echo "no requirements.txt found"
+# install dependencies
+pip install -r ../requirements.txt -U --no-cache-dir || echo "no requirements.txt found"
 
-echo "building with $CORES cores"
+echo "Building with $CORES cores on $ARCH architecture"
 
+# build cython modules
 python local-setup.py build_ext \
     --build-lib=temp \
     --build-temp=temp/build_cython \
@@ -21,6 +40,11 @@ python local-setup.py build_ext \
     --parallel=$CORES \
     --verbose
 
+# modify local-setup.py to remove "native" architecture flags for portability
+sed -i 's/"-march=native",//' local-setup.py
+sed -i 's/"-mtune=native",//' local-setup.py
+
+# build executable
 python -m PyInstaller \
     -n meow \
     --clean \
@@ -53,7 +77,7 @@ python -m PyInstaller \
     --exclude-module=pyi_rth_inspect \
     --workpath=temp/build_pyinstaller
 
-mv *.so ./temp/
+mv *.so ./temp/ 2>/dev/null || true
 rm -rf *.spec
 
 strip --strip-all -R .comment -R .note -R .gnu.version dist/meow
@@ -63,20 +87,21 @@ objcopy --strip-unneeded \
         --keep-symbols=python.def \
         dist/meow
 
-echo -e "\nfinal executable size:"
+echo -e "\n executable size:"
 du -sh dist/meow
 file dist/meow
 
-echo -e "\ninstall to /usr/local/bin? [Y/n]"
+cp "dist/meow" "./dist/meow-${ARCH}"
+echo "executable at: $(pwd)/dist/meow-${ARCH}"
+
+echo -e "\nInstall to /usr/local/bin? [Y/n]"
 read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-    mv "dist/meow" "./dist/meow-$(uname -m)"
-    echo "executable available at: $(pwd)/dist/meow-$(uname -m)"
+    echo "Executable available at: $(pwd)/dist/meow-${ARCH}"
 else
-    sudo mv "dist/meow" "/usr/bin/meow"
-    echo "installed to /usr/bin/meow"
-    echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
+    sudo mv "dist/meow" "/usr/local/bin/meow"
+    echo "Installed to /usr/local/bin/meow"
+    echo "Uninstall with 'sudo rm -rf /usr/local/bin/meow'"
 fi
-
 
 rm -rf __pycache__/ build/ temp/
