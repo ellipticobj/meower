@@ -151,7 +151,7 @@ class Pipeline:
             # write report with proper formatting
             with open(saveto, 'w') as f:
                 f.writelines(output)
-            success(message="  i report generated", pbar=pbar)
+            info(message="  i report generated", pbar=pbar)
         else:
             # display report to console
             for line in output:
