@@ -3,11 +3,11 @@ from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
 from collections.abc import Callable
-from typing import List, Optional, Dict, Union, Any
+from typing import List, Optional, Dict, Tuple, Union, Any
 
 from meow.core.executor import runcmd
 
-from meow.utils.loggers import info, success
+from meow.utils.loggers import info
 
 '''pipeline related functions'''
 
@@ -27,7 +27,7 @@ class PipelineStep:
         self, 
         args: Namespace, 
         pbar: Optional[tqdm]
-    ) -> tuple[dict[str, Union[object,Any]], Any]:
+    ) -> Tuple[dict[str, Union[object,Any]], int]:
         '''executes the step'''
         start = time()
         toadd, cmd = self.func(args)
@@ -55,13 +55,13 @@ class Pipeline:
         self.args = args
         self.steps = steps
         self.pbar = pbar
-        self.report: List[Dict[str, Union[str, float]]] = []
+        self.report: List[Dict[str, Union[object, Any]]] = []
 
     def run(self) -> None:
         '''runs all steps in the pipeline'''
         starttime = time()
         for step in self.steps:
-            reportitem: Dict[str, Union[str, float]]
+            reportitem: Dict[str, Union[object, Any]]
             toadd: Any
             reportitem, toadd = step.execute(self.args, self.pbar)
             
@@ -99,16 +99,16 @@ class Pipeline:
         
         # add detailed step information
         for i, step in enumerate(self.report[:-1], 1):  # skip the TOTAL summary at the end
-            cmd: str = step.get('command', 'N/A')
-            stepname: str = step['step']
-            duration: float = step['duration']
-            returncode: Union[str, int] = step.get('returncode', 'N/A')
+            cmd: str = str(step.get('command', 'N/A'))
+            stepname: str = str(step['step'])
+            duration = step['duration']
+            returncode = step.get('returncode', 'N/A')
             
             # format step header
             output.append(f"### step {i}: {stepname}\n")
             output.append(f"command: `{cmd}`\n")
             output.append(f"duration: {duration:.3f} seconds\n")
-            output.append(f"status: {'✓ success' if returncode == 0 else '❌ failed'}\n")
+            output.append(f"status: {'✓ success' if returncode == 0.0 else '❌ failed'}\n")
             
             # add step output if available (format for readability)
             if step.get("output"):
@@ -127,9 +127,9 @@ class Pipeline:
         output.append("## performance summary\n\n")
         
         # sort steps by duration to find slowest steps
-        sortedduration: List[Dict[str, Union[str, float]]] = sorted(
+        sortedduration: List[Dict[str, Union[object, Any]]] = sorted(
             [step for step in self.report if step['step'] != 'TOTAL'],
-            key=lambda x: x['duration'], 
+            key=lambda x: x['duration'], # type: ignore
             reverse=True
         )
         

@@ -5,7 +5,6 @@ from typing import List, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
-from meow.core.pipeline import PipelineStep
 from meow.utils.loggers import error, info, spacer
 
 def initcommands(parser: ArgumentParser) -> None:
@@ -55,7 +54,7 @@ def validateargs(args: Namespace) -> None:
         error("commit message required (use --amend, --no-message, or provide message)")
         sys.exit(1)
 
-def getpipelinesteps(args: Namespace) -> List[PipelineStep]:
+def getpipelinesteps(args: Namespace) -> List:
     '''get pipeline steps'''
     from meow.core.pipeline import PipelineStep # type: ignore
     steps: List[PipelineStep] = []
@@ -230,7 +229,7 @@ def displayheader() -> None:
     info(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
     info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-def displaysteps(steps: List[PipelineStep]) -> None:
+def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''
     info(f"{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
