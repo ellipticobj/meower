@@ -283,7 +283,7 @@ def runcmd(
                 return result
         
         # standard execution without progress display
-        # Determine working directory - use git root for git commands if available
+        # determine working directory - use git root for git commands if available
         work_dir = getreporoot() if isgitcmd else os.getcwd()
         
         result = runsubprocess(
@@ -294,10 +294,6 @@ def runcmd(
             stderr=PIPE if captureoutput else None,
             env=cmdenv
         )
-        
-        # update command timing cache
-        # if isgitcmd:
-        #     commandtimingcache[" ".join(cmd[0:2])] = time() - starttime
         
         # process output (only if we captured output)
         if result and captureoutput and result.stdout:

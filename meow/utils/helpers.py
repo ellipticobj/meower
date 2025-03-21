@@ -103,9 +103,10 @@ def _getcommitcommand(args: Namespace) -> List[str]:
     commitcmd: List[str] = ["git", "commit"]
     
     if args.message:
-        # Properly handle message as a single string with quotes to avoid argument splitting
+        # properly handle message as a single string with quotes to avoid argument splitting
         message: str = " ".join(args.message) if isinstance(args.message, list) else args.message
-        # Pass the message in quotes to preserve spaces
+        message = f'"{message}"'
+        # pass the message in quotes to preserve spaces
         commitcmd.extend(["-m", f"{message}"])
     elif args.nomsg:
         commitcmd.append("--allow-empty-message")

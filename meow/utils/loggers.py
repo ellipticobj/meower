@@ -174,7 +174,7 @@ def showcommitresult(
                     message=parts[3]
                 ), mainpbar)
         else:
-            # Limit output to first 4 lines with count of remaining lines
+            # libit output to first 4 lines with count of remaining lines
             lines = output.split('\n')
             if len(lines) > 5:
                 for line in lines[:4]:
@@ -205,5 +205,4 @@ def spacer(pbar: Optional[tqdm] = None, height: int = 1) -> str:
     '''add empty lines for spacing'''
     for _ in range(height):
         info(message="", pbar=pbar)
-    
     return "\n" * height
