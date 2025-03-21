@@ -36,6 +36,7 @@ build:
 ![screenshot](assets/screenshot.png)
 
 # roadmap
+- better help tips when error
 - debug everything
 - release a stable build
 - feature improvements (ask for user input for certain errors like no email detected)

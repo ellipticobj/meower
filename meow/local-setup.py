@@ -1,7 +1,7 @@
 from setuptools import setup, Extension # type: ignore
 from Cython.Build import cythonize # type: ignore
 from Cython.Compiler import Options # type: ignore
-from meow.config import VERSION
+from config import VERSION # type: ignore
 
 CFLAGS = [
     "-O3",
