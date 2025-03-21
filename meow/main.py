@@ -5,6 +5,9 @@ from argparse import ArgumentParser, Namespace
 from tqdm import tqdm # type: ignore
 from colorama import init, Fore, Style # type: ignore
 
+from meow.utils.loggers import success # type: ignore
+from typing import List
+
 try:
     # when running as a module: python -m meow.main
     from meow.config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
@@ -18,7 +21,7 @@ try:
         getpipelinesteps
     )
     from meow.commands.githandler import handlegitcommands
-    from meow.utils.gitutils import isgitrepo as isgitrepofunc
+    from meow.utils.gitutils import isgitrepo as checkisgitrepo
 except ModuleNotFoundError:
     # when running directly: python main.py
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -34,13 +37,13 @@ except ModuleNotFoundError:
         getpipelinesteps
     )
     from meow.commands.githandler import handlegitcommands
-    from meow.utils.gitutils import isgitrepo as isgitrepofunc
+    from meow.utils.gitutils import isgitrepo as checkisgitrepo
 
 def main() -> None:
     '''entry point'''
     init(autoreset=True)
     
-    parser = ArgumentParser(
+    parser: ArgumentParser = ArgumentParser(
         prog="meow",
         description="a friendly git wrapper",
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
@@ -54,7 +57,7 @@ def main() -> None:
         sys.exit(1)
     
     # check if we're in a git repository using our utility function
-    isgitrepo = isgitrepofunc()
+    isgitrepo: bool = checkisgitrepo()
     
     # handle direct git command syntax: meow <git-command> [args...]
     if len(sys.argv) >= 2:
@@ -66,7 +69,7 @@ def main() -> None:
         # check for git command
         if sys.argv[1].lower() in KNOWNCOMMANDS:
             # warn if not in a git repo except for commands that can work outside a repo (init, clone, help)
-            safecmds = ['init', 'clone', 'help', 'version']
+            safecmds: List[str] = ['init', 'clone', 'help', 'version']
             if not isgitrepo and sys.argv[1].lower() not in safecmds:
                 error("not in a git repository")
                 error("tip: use 'meow init' to create a new repository")
@@ -91,7 +94,7 @@ def main() -> None:
     # warn if not in a git repo for pipeline mode
     if not isgitrepo:
         error("not in a git repository")
-        error("tip: use 'meow init' to create a new repository")
+        error("use 'meow init' to create a new repository")
         sys.exit(1)
 
     # validate pipeline arguments 
@@ -107,6 +110,8 @@ def main() -> None:
     # get pipeline steps
     steps = getpipelinesteps(args)
     displaysteps(steps)
+
+    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}executing{Style.RESET_ALL}")
 
     # execute pipeline
     with tqdm(
@@ -128,12 +133,14 @@ def main() -> None:
             pipeline.generatereport(pbar=pbar)
         else:
             # generate report in config directory (absolute path)
-            reportpath = os.path.expanduser("~/.config/meow/report.txt")
+            reportpath: str = os.path.expanduser("~/.config/meow/report.txt")
             pipeline.generatereport(saveto=reportpath, pbar=pbar)
         
         # ensure progress bar is closed properly
         pbar.close()
     
+    print()
+    success(message="✓ meow is done!")
     print()
     print("😺")
 

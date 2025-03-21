@@ -28,7 +28,7 @@ class PipelineStep:
         args: Namespace, 
         pbar: Optional[tqdm]
     ) -> tuple[dict[str, Union[object,Any]], Any]:
-        '''executes thes tep'''
+        '''executes the step'''
         start = time()
         toadd, cmd = self.func(args)
 
@@ -61,8 +61,8 @@ class Pipeline:
         '''runs all steps in the pipeline'''
         starttime = time()
         for step in self.steps:
-            reportitem: Dict
-            toadd: int
+            reportitem: Dict[str, Union[str, float]]
+            toadd: Any
             reportitem, toadd = step.execute(self.args, self.pbar)
             
             # update bar
@@ -85,7 +85,7 @@ class Pipeline:
         from datetime import datetime
         
         # get current timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # build report header
         output: List[str] = [
@@ -99,10 +99,10 @@ class Pipeline:
         
         # add detailed step information
         for i, step in enumerate(self.report[:-1], 1):  # skip the TOTAL summary at the end
-            cmd = step.get('command', 'N/A')
-            stepname = step['step']
-            duration = step['duration']
-            returncode = step.get('returncode', 'N/A')
+            cmd: str = step.get('command', 'N/A')
+            stepname: str = step['step']
+            duration: float = step['duration']
+            returncode: Union[str, int] = step.get('returncode', 'N/A')
             
             # format step header
             output.append(f"### step {i}: {stepname}\n")
@@ -127,7 +127,7 @@ class Pipeline:
         output.append("## performance summary\n\n")
         
         # sort steps by duration to find slowest steps
-        sortedduration = sorted(
+        sortedduration: List[Dict[str, Union[str, float]]] = sorted(
             [step for step in self.report if step['step'] != 'TOTAL'],
             key=lambda x: x['duration'], 
             reverse=True
@@ -151,7 +151,7 @@ class Pipeline:
             # write report with proper formatting
             with open(saveto, 'w') as f:
                 f.writelines(output)
-            success(message=f"✓ report saved to {saveto}", pbar=pbar)
+            success(message="  i report generated", pbar=pbar)
         else:
             # display report to console
             for line in output:

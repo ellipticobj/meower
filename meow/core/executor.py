@@ -186,10 +186,10 @@ def runcmd(
         return None
 
     # base command string for logging/caching
-    cmdstr = list2cmdline(cmd)
+    cmdstr: str = list2cmdline(cmd)
     
     # for git commands, check command timing cache to optimize progress display
-    isgitcmd = len(cmd) > 1 and cmd[0] == "git"
+    isgitcmd: bool = len(cmd) > 1 and cmd[0] == "git"
     # estimatedtime = commandtimingcache.get(cmdstr.split()[0:2], 1.0) if isgitcmd else 1.0
 
     try:
@@ -198,7 +198,7 @@ def runcmd(
         printcmd(f"      $ {cmdstr}", pbar)
 
         # determine if command should be interactive
-        interactive = False
+        interactive: bool = False
         if isinteractive is not None:
             interactive = isinteractive
         elif isgitcmd and len(cmd) >= 2:
@@ -207,7 +207,7 @@ def runcmd(
                 interactive = True
 
         # enhanced environment variables
-        cmdenv = env or {}
+        cmdenv: Dict[str, str] = env or {}
         
         # For git commands, enhance the environment with git-specific settings
         if isgitcmd:

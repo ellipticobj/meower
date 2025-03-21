@@ -5,6 +5,7 @@ from typing import List, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
+from meow.core.pipeline import PipelineStep
 from meow.utils.loggers import error, info, spacer
 
 def initcommands(parser: ArgumentParser) -> None:
@@ -54,33 +55,33 @@ def validateargs(args: Namespace) -> None:
         error("commit message required (use --amend, --no-message, or provide message)")
         sys.exit(1)
 
-def getpipelinesteps(args: Namespace) -> List:
+def getpipelinesteps(args: Namespace) -> List[PipelineStep]:
     '''get pipeline steps'''
     from meow.core.pipeline import PipelineStep # type: ignore
     steps: List[PipelineStep] = []
 
-    def getstatus(args: Namespace):
+    def getstatus(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "status"]) if args.status else (0, [])
     
-    def updatesubmodules(args: Namespace):
+    def updatesubmodules(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "submodule", "update", "--init", "--recursive"]) if args.updatesubmodules else (0, [])
     
-    def getstash(args: Namespace):
+    def getstash(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "stash"]) if args.stash else (0, [])
     
-    def getpull(args: Namespace):
+    def getpull(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "pull"]) if args.pull or args.norebase else (0, [])
     
-    def getstage(args: Namespace):
+    def getstage(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "add", *args.add] if args.add else ["git", "add", "."])
     
-    def getdiff(args: Namespace):
+    def getdiff(args: Namespace) -> Tuple[int, List[str]]:
         return (1, ["git", "diff", "--staged"]) if args.diff else (0, [])
     
-    def getcommit(args: Namespace):
+    def getcommit(args: Namespace) -> Tuple[int, List[str]]:
         return (1, _getcommitcommand(args))
     
-    def getpush(args: Namespace):
+    def getpush(args: Namespace) -> Tuple[int, List[str]]:
         return (1, _getpushcommand(args)) if not args.nopush else (0, [])
 
     # create steps
@@ -99,11 +100,11 @@ def getpipelinesteps(args: Namespace) -> List:
 
 def _getcommitcommand(args: Namespace) -> List[str]:
     '''generate commit command'''
-    commitcmd = ["git", "commit"]
+    commitcmd: List[str] = ["git", "commit"]
     
     if args.message:
         # Properly handle message as a single string with quotes to avoid argument splitting
-        message = " ".join(args.message) if isinstance(args.message, list) else args.message
+        message: str = " ".join(args.message) if isinstance(args.message, list) else args.message
         # Pass the message in quotes to preserve spaces
         commitcmd.extend(["-m", f"{message}"])
     elif args.nomsg:
@@ -126,7 +127,7 @@ def _getcommitcommand(args: Namespace) -> List[str]:
 
 def _getpushcommand(args: Namespace) -> List[str]:
     '''generate push commands'''
-    pushcmd = ["git", "push"]
+    pushcmd: List[str] = ["git", "push"]
     
     if args.tags:
         pushcmd.append("--tags")
@@ -166,7 +167,7 @@ def getgitcommands(
 ) -> Tuple[List[str], List[str]]:
     '''get commands based on input'''
     # commands that automatically add before executing
-    autoaddcommands = {"commit", "amend"}
+    autoaddcommands: set[str] = {"commit", "amend"}
     
     # commands with special flags handling
     if gitcommand == "add":
@@ -228,7 +229,7 @@ def displayheader() -> None:
     info(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
     info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-def displaysteps(steps: List) -> None:
+def displaysteps(steps: List[PipelineStep]) -> None:
     '''displays pipeline steps'''
     info(f"{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
@@ -237,67 +238,72 @@ def displaysteps(steps: List) -> None:
 
 def suggestfix(errormsg: str) -> str:
     '''suggest fixes for common git errors'''
-    # ai helped with this, i went through manually and tweaked some parts
-    msg = errormsg.lower()
+    msg: str = errormsg.lower()
     feedback: List[str] = []
+
+    # large files
+    if "large file storage" in msg:
+        feedback.append("    s some of your files are too large for git. see https://gh.io/lfs to find out more.")
     
     # push/pull related errors
-    if "non-fast-forward" in msg or "rejected" in msg:
-        feedback.append("    f try running `git pull` before pushing, or use --force-with-lease")
-    if "failed to push some refs" in msg:
-        feedback.append("    f remote contains work you do not have locally. run `git fetch` then `git pull`")
+    if ("non-fast-forward" in msg or "rejected" in msg) and "large file storage" not in msg:
+        feedback.append("    s try running `git pull` before pushing, or use --force-with-lease")
+    if "failed to push some refs" in msg and "large file storage" not in msg:
+        feedback.append("    s remote contains work you do not have locally. run `git fetch` then `git pull`")
     
     # authentication errors
     if "permission denied" in msg:
-        feedback.append("    f do you have permissions?")
+        feedback.append("    s do you have permissions?")
     if "authentication failed" in msg:
-        feedback.append("    f verify your username and password/token are correct")
+        feedback.append("    s verify your username and password/token are correct")
     if "could not read from remote repository" in msg:
-        feedback.append("    f check repo url and your network connection")
+        feedback.append("    s check repo url and your network connection")
     
     # merge/conflict errors
     if "merge conflict" in msg:
-        feedback.append("    f resolve conflicts manually then commit the result")
+        feedback.append("    s resolve conflicts manually then commit the result")
     if "overwritten by merge" in msg:
-        feedback.append("    f stash your changes first with `git stash`, then pull")
+        feedback.append("    s stash your changes first with `git stash`, then pull")
     if "your local changes to the following files would be overwritten by" in msg:
-        feedback.append("    f stash or commit your changes before pulling")
+        feedback.append("    s stash or commit your changes before pulling")
     
     # branch related errors
     if "not a valid object name" in msg or "did not match any file(s) known to git" in msg:
-        feedback.append("    f is your branch name correct?")
+        feedback.append("    s is your branch name correct?")
     if "a branch named" in msg and "already exists" in msg:
-        feedback.append("    f use a different branch name")
+        feedback.append("    s use a different branch name")
     if "src refspec" in msg and "does not match any" in msg:
-        feedback.append("    f branch does not exist... did you misspell something?")
+        feedback.append("    s branch does not exist... did you misspell something?")
     
     # commit related errors
     if "nothing to commit" in msg:
-        feedback.append(f"    i {Fore.CYAN}nothing to commit")
+        feedback.append(f"    s {Fore.CYAN}nothing to commit")
     if "no changes added to commit" in msg:
-        feedback.append("    f stage changes first with `git add` before committing")
+        feedback.append("    s stage changes first with `git add` before committing")
     if "please tell me who you are" in msg:
-        feedback.append("    f set your identity with: `git config --global user.email \"you@example.com\"` and `git config --global user.name \"Your Name\"`")
+        feedback.append("    s set your identity with: `git config --global user.email \"you@example.com\"` and `git config --global user.name \"Your Name\"`")
     
     # status msgs
     if "already up to date" in msg or "already up-to-date" in msg:
-        feedback.append(f"    i {Fore.CYAN}everything up to date")
+        feedback.append(f"    s {Fore.CYAN}everything up to date")
     
     # submodule errors
     if "could not resolve host" in msg:
-        feedback.append("    f check your internet connection or repository URL")
+        feedback.append("    s check your internet connection or repository URL")
     if "no submodule mapping found" in msg:
-        feedback.append("    f initialize submodules with `git submodule init` first")
+        feedback.append("    s initialize submodules with `git submodule init` first")
     
     # git config errors
     if "bad config file" in msg:
-        feedback.append("    f check format of your git config file")
+        feedback.append("    s check format of your git config file")
     
     # if no specific feedback, give general git info
     if not feedback and "fatal:" in msg:
-        feedback.append("    f check `git help` or `git help <command>` for more information")
+        feedback.append("    s check `git help` or `git help <command>` for more information")
     
-    return "\n".join(feedback)
+    if not feedback:
+        return "\n".join(feedback)
+    return "\n".join(["  suggestions:"] + feedback)
 
 def list2cmdline(cmd: List[str]) -> str:
     '''convert command list to string'''
