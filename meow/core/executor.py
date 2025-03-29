@@ -36,12 +36,17 @@ def handlepush(
     alloutput = []
 
     allowedpatterns = {
-        "remote:": 25,
-        "Enumerating objects:": 40,
-        "Counting objects:": 50,
-        "Compressing objects:": 65,
-        "Writing objects:": 80,
-        "Total": 90
+        "->", 
+        "To ", 
+        "Total",
+        "* [new",
+        "remote:",
+        "! [rejected]",
+        "Writing objects:",
+        "Counting objects:",
+        "Enumerating objects:",
+        "Compressing objects:",
+        "Everything up-to-date"
     }
 
     def processline(line: str, source: str) -> None:
@@ -51,14 +56,12 @@ def handlepush(
             
         alloutput.append(line)
         
-        # Update progress bar based on known progress patterns
-        for pattern, progress in allowedpatterns.items():
+        # update progress bar based on known progress patterns
+        for pattern in allowedpatterns:
             if pattern in line:
-                innerpbar.n = progress
-                innerpbar.refresh()
-                break
+                info(f"      {line}", pbar=innerpbar)
         
-        # Extract percentage from progress lines
+        # extract percentage from progress lines
         if "%" in line:
             try:
                 percent = int(line.split("%")[0].split()[-1])
@@ -118,7 +121,7 @@ def handlepush(
         innerpbar.colour = 'green'
         innerpbar.refresh()
         
-        # Show final summary
+        # show final summary
         spacer(pbar=innerpbar)
         status_lines = []
         for line in reversed(alloutput):
