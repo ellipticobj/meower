@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace
 from tqdm import tqdm # type: ignore
 from colorama import init, Fore, Style # type: ignore
 
-from meow.utils.loggers import success # type: ignore
+from meow.utils.loggers import success, info # type: ignore
 from typing import List
 
 try:
@@ -58,6 +58,15 @@ def main() -> None:
     
     # check if we're in a git repository using our utility function
     isgitrepo: bool = checkisgitrepo()
+
+    # display header
+    displayheader()
+
+    # display get repo root 
+    from meow.utils.gitutils import getreporoot
+    reporoot = getreporoot()
+    if reporoot:
+        info(f"git repository: {Style.BRIGHT}{reporoot}{Style.RESET_ALL}\n")
     
     # handle direct git command syntax: meow <git-command> [args...]
     if len(sys.argv) >= 2:
@@ -99,9 +108,6 @@ def main() -> None:
 
     # validate pipeline arguments 
     validateargs(args)
-
-    # display header
-    displayheader()
 
     # indicate dry run
     if args.dry:

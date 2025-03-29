@@ -124,6 +124,9 @@ def runoptimizedgitcmd(
                     spacer(pbar=innerpbar)
                     info(f"      {output[0]}", pbar=innerpbar)
             else:
+                # Execute the actual command for non-push git commands
+                returncode, stdout, stderr = rungitcmd(gitcmd, env)
+                
                 innerpbar.n = 70
                 innerpbar.refresh()
                 stoploadinganimation(threadinfo=animation)
@@ -207,15 +210,6 @@ def runcmd(
 ) -> Optional[CompletedProcess]:
     '''
     executes a command
-    
-    cmd: command to execute
-    flags: optional flags controlling execution
-    pbar: optional progress bar
-    withprogress: show progress animation
-    captureoutput: capture command output
-    printsuccess: print success message
-    isinteractive: interactive mode
-    env: environment variables for the command
     '''
     # default flags
     flags = flags or Namespace(dry=False, cont=False, verbose=False)
@@ -242,7 +236,6 @@ def runcmd(
     
     # for git commands, check command timing cache to optimize progress display
     isgitcmd: bool = len(cmd) > 1 and cmd[0] == "git"
-    # estimatedtime = commandtimingcache.get(cmdstr.split()[0:2], 1.0) if isgitcmd else 1.0
 
     try:
         spacer(pbar=pbar)
@@ -263,18 +256,18 @@ def runcmd(
         
         # For git commands, enhance the environment with git-specific settings
         if isgitcmd:
-            git_env = getgitcmdenv()
-            cmdenv.update(git_env)
+            gitenv = getgitcmdenv()
+            cmdenv.update(gitenv)
         
         if interactive:
             # run interactive commands directly
             # Determine working directory - use git root for git commands if available
-            work_dir = getreporoot() if isgitcmd else os.getcwd()
+            workdir = getreporoot() if isgitcmd else os.getcwd()
             
             result = runsubprocess(
                 cmd, 
                 check=True, 
-                cwd=work_dir, 
+                cwd=workdir, 
                 capture_output=False,
                 env=cmdenv
             )
@@ -296,12 +289,12 @@ def runcmd(
                 
                 # run command with optimized capture settings
                 # Determine working directory - use git root for git commands if available
-                work_dir = getreporoot() if isgitcmd else os.getcwd()
+                workdir = getreporoot() if isgitcmd else os.getcwd()
                 
                 result = runsubprocess(
                     cmd, 
                     check=True, 
-                    cwd=work_dir, 
+                    cwd=workdir, 
                     stdout=PIPE if captureoutput else None,
                     stderr=PIPE if captureoutput else None,
                     env=cmdenv
@@ -336,12 +329,12 @@ def runcmd(
         
         # standard execution without progress display
         # determine working directory - use git root for git commands if available
-        work_dir = getreporoot() if isgitcmd else os.getcwd()
+        workdir = getreporoot() if isgitcmd else os.getcwd()
         
         result = runsubprocess(
             cmd, 
             check=True, 
-            cwd=work_dir, 
+            cwd=workdir, 
             stdout=PIPE if captureoutput else None,
             stderr=PIPE if captureoutput else None,
             env=cmdenv

@@ -25,11 +25,6 @@ def getreporoot() -> Optional[str]:
         return None
 
 class GitRunner:
-    """
-    provides a unified interface for git operations,
-    falling back to subprocess if GitPython throws an error.
-    """
-    
     def __init__(self):
         self.repo = None
         try:
@@ -42,10 +37,6 @@ class GitRunner:
     def run(self, cmd: List[str], env: Optional[Dict[str, str]] = None) -> Tuple[int, str, str]:
         """
         runs a git command and return (returncode, stdout, stderr)
-        cmd: Git command as a list of strings (without 'git' prefix)
-        env: Environment variables for the command
-            
-        returns tuple of (returncode, stdout, stderr)
         """
         if self.repo:
             try:
