@@ -2,31 +2,69 @@
 
 # cache directory
 CACHE_DIR=".build_cache"
-HASH_FILE="${CACHE_DIR}/build_hash"
+HASHES_FILE="${CACHE_DIR}/file_hashes.json"
 mkdir -p "$CACHE_DIR"
 
-# function to calculate hash of source files and build configs
-calchash() {
-    find . -type f \( -name "*.py" -o -name "*.pyx" -o -name "*.pxd" \) -not -path "./build/*" -not -path "./dist/*" -not -path "./${CACHE_DIR}/*" -print0 | \
-    sort -z | xargs -0 sha256sum | \
-    sha256sum | \
-    cut -d' ' -f1
+# function to calculate hash of a single file
+calchash_file() {
+    sha256sum "$1" | cut -d' ' -f1
 }
 
-# function to check if rebuild is needed
-needsrebuild() {
-    # always rebuild if cache doesn't exist
-    if [ ! -f "$HASH_FILE" ]; then
-        return 0
+# function to load previous hashes
+load_hashes() {
+    if [ -f "$HASHES_FILE" ]; then
+        cat "$HASHES_FILE"
+    else
+        echo "{}"
     fi
+}
 
-    local old_hash
-    old_hash=$(cat "$HASH_FILE")
+# function to save new hashes
+save_hashes() {
+    echo "$1" > "$HASHES_FILE"
+}
+
+# function to check if a file needs rebuilding
+needs_rebuild() {
+    local file="$1"
+    local current_hash
+    local stored_hashes
+    local stored_hash
+    
+    current_hash=$(calchash_file "$file")
+    stored_hashes=$(load_hashes)
+    
+    # extract hash for this file from stored_hashes JSON
+    stored_hash=$(echo "$stored_hashes" | grep -o "\"$file\": \"[^\"]*\"" | cut -d'"' -f4)
+    
+    # return 0 (true) if hashes differ or stored hash doesn't exist
+    [ -z "$stored_hash" ] || [ "$stored_hash" != "$current_hash" ]
+}
+
+# function to update hash for a file
+update_hash() {
+    local file="$1"
     local new_hash
-    new_hash=$(calchash)
-
-    # return 0 (true) if hashes differ, 1 (false) if they match
-    [ "$old_hash" != "$new_hash" ]
+    local stored_hashes
+    
+    new_hash=$(calchash_file "$file")
+    stored_hashes=$(load_hashes)
+    
+    # update hash in JSON
+    if [ "$(echo "$stored_hashes" | grep -c .)" -eq 0 ]; then
+        # empty JSON
+        stored_hashes="{\"$file\": \"$new_hash\"}"
+    else
+        # remove closing brace, add new entry
+        stored_hashes=$(echo "$stored_hashes" | sed 's/}$//')
+        if [ "$(echo "$stored_hashes" | grep -c ':')" -gt 0 ]; then
+            stored_hashes="$stored_hashes,\"$file\": \"$new_hash\"}"
+        else
+            stored_hashes="$stored_hashes\"$file\": \"$new_hash\"}"
+        fi
+    fi
+    
+    save_hashes "$stored_hashes"
 }
 
 # clean specific directories but preserve cache
@@ -58,9 +96,21 @@ export CFLAGS LDFLAGS
 CORES=$(python -c "import os; print(os.cpu_count())")
 export MAKEFLAGS="-j$CORES"
 
-# check if we need to rebuild
-if needsrebuild; then
-    echo "changes detected or cache file not found, rebuilding..."
+# find all Cython source files
+CYTHON_FILES=$(find . -type f \( -name "*.py" -o -name "*.pyx" -o -name "*.pxd" \) -not -path "./build/*" -not -path "./dist/*" -not -path "./${CACHE_DIR}/*")
+
+# check each file and build if needed
+REBUILD_NEEDED=0
+for file in $CYTHON_FILES; do
+    if needs_rebuild "$file"; then
+        echo "Changes detected in $file, will rebuild..."
+        REBUILD_NEEDED=1
+        break
+    fi
+done
+
+if [ $REBUILD_NEEDED -eq 1 ]; then
+    echo "Building changed files..."
     
     # clean selectively
     selectiveclean
@@ -79,8 +129,10 @@ if needsrebuild; then
         --parallel=$CORES \
         --verbose
 
-    # cache the new hash
-    calchash > "$HASH_FILE"
+    # update hashes for all files
+    for file in $CYTHON_FILES; do
+        update_hash "$file"
+    done
 else
     echo "No changes detected, using cached build"
 fi
