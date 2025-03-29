@@ -56,31 +56,24 @@ def handlepush(
             
         alloutput.append(line)
         
-        # update progress bar based on known progress patterns
-        for pattern in allowedpatterns:
-            if pattern in line:
-                info(f"      {line}", pbar=innerpbar)
+        if any(important in line.lower() for important in [
+            "error:", "fatal:", "authentication failed", 
+            "permission denied", "rejected", "failed"
+        ]):
+            error(f"      {line}", pbar=innerpbar)
+
+        if any(pattern in line for pattern in allowedpatterns):
+            info(f"      {line}", pbar=innerpbar)
         
         # extract percentage from progress lines
         if "%" in line:
             try:
                 percent = int(line.split("%")[0].split()[-1])
                 if percent > innerpbar.n:
-                    innerpbar.n = min(percent, 95)  # Cap at 95% until complete
+                    innerpbar.n = min(percent, 95)  #bcap at 95% until complete
                     innerpbar.refresh()
             except (ValueError, IndexError):
                 pass
-        
-        if any(important in line.lower() for important in [
-            "error:", "fatal:", "authentication failed", 
-            "permission denied", "rejected", "failed"
-        ]):
-            error(f"      {line}", pbar=innerpbar)
-        elif any(status in line for status in [
-            "->", "To ", "* [new", "! [rejected]", 
-            "Everything up-to-date"
-        ]):
-            info(f"      {line}", pbar=innerpbar)
 
     for pipe in [process.stdout, process.stderr]:
         if pipe:
