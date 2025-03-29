@@ -1,11 +1,10 @@
 from sys import exit
 import os
-from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
 from colorama import Fore, Style # type: ignore
 from typing import List, Optional, Dict
-from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError, PIPE
+from subprocess import Popen, run as runsubprocess, CompletedProcess, CalledProcessError, PIPE
 
 from meow.utils.helpers import suggestfix, list2cmdline # type: ignore
 from meow.utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
@@ -15,7 +14,7 @@ from meow.utils.gitutils import getreporoot, getgitcmdenv, rungitcmd # type: ign
 # cache for storing command execution times
 # commandtimingcache: Dict[str, float] = {}
 
-def run_optimized_git_command(
+def runoptimizedgitcmd(
     cmd: List[str],
     flags: Optional[Namespace] = None,
     pbar: Optional[tqdm] = None,
@@ -23,9 +22,9 @@ def run_optimized_git_command(
     captureoutput: bool = True
 ) -> Optional[CompletedProcess]:
     '''
-    Optimized function to run git commands using GitPython when available
+    optimized function to run git commands using GitPython when available
     
-    Uses the GitRunner class which is more reliable for git credential handling
+    uses the GitRunner class which is more reliable for git credential handling
     '''
     if not cmd or len(cmd) < 2 or cmd[0] != "git":
         # not a git command then use standard runcmd
@@ -54,6 +53,10 @@ def run_optimized_git_command(
     spacer(pbar=pbar)
     info("    running command:", pbar)
     printcmd(f"      $ {cmdstr}", pbar)
+
+    returncode: int = 0
+    stdout: str = ""
+    stderr: str = ""
     
     if withprogress:
         with tqdm(
@@ -66,50 +69,99 @@ def run_optimized_git_command(
             innerpbar.n = 20
             animation = startloadinganimation()
 
-            returncode: int
-            stdout: str
-            stderr: str
-            
-            returncode, stdout, stderr = rungitcmd(gitcmd, env)
+            if cmd[1] == "push":
+                process = Popen(
+                    cmd,
+                    cwd=workdir,
+                    env=env,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    bufsize=1,
+                    universal_newlines=True,
+                    text=True
+                )
+                
+                stdoutlines = []
+                stderrlines = []
+                
+                while True:
+                    # output progress
+                    stderrline = process.stderr.readline() if process.stderr else ''
+                    if stderrline:
+                        stderrlines.append(stderrline)
+                        if "Writing objects:" in stderrline \
+                            or "Compressing objects:" in stderrline \
+                            or "Enumerating objects:" in stderrline \
+                            or "Counting objects:" in stderrline:
+                            info(f"      {stderrline.strip()}", pbar=innerpbar)
+                    
+                    stdoutline = process.stdout.readline() if process.stdout else ''
+                    if stdoutline:
+                        stdoutlines.append(stdoutline)
+                    
+                    # check if process has finished
+                    if process.poll() is not None and not stderrline and not stdoutline:
+                        break
+                
+                if process.stdout:
+                    for line in process.stdout:
+                        stdoutlines.append(line)
+                
+                returncode = process.returncode
+                stdout = "".join(stdoutlines)
+                stderr = "".join(stderrlines)
 
-            innerpbar.n = 70
-            innerpbar.refresh()
-            stoploadinganimation(threadinfo=animation)
-            
-            result = CompletedProcess(
-                args=cmd,
-                returncode=returncode,
-                stdout=stdout.encode('utf-8') if stdout else b'',
-                stderr=stderr.encode('utf-8') if stderr else b''
-            )
-            
-            if captureoutput and stdout:
-                printoutput(result=result, flags=flags or Namespace(verbose=False), 
-                            pbar=innerpbar, mainpbar=pbar)
-            
-            innerpbar.n = 100
-            innerpbar.colour = 'green'
-            innerpbar.refresh()
-            innerpbar.close()
-            
-            if returncode == 0:
-                success("    ✓ completed successfully", pbar=innerpbar)
-                return result
+                output = (stderr + stdout).splitlines()
+                if len(output) > 3:
+                    # plint lines saying remote blah blah blah at the end
+                    lastlines = output[-3:]
+                    spacer(pbar=innerpbar)
+                    for line in lastlines:
+                        if line.strip():
+                            info(f"      {line.strip()}", pbar=innerpbar)
+                elif len(output) == 1:
+                    # print line saying everything up to date
+                    spacer(pbar=innerpbar)
+                    info(f"      {output[0]}", pbar=innerpbar)
             else:
-                error(f"\n❌ command failed with exit code {returncode}:", pbar)
-                printcmd(f"  $ {cmdstr}", pbar)
+                innerpbar.n = 70
+                innerpbar.refresh()
+                stoploadinganimation(threadinfo=animation)
                 
-                if stderr:
-                    error(f"{Fore.RED}{stderr}", pbar)
-                    suggestion = suggestfix(stderr)
-                    if suggestion:
-                        error(suggestion, pbar)
+                result = CompletedProcess(
+                    args=cmd,
+                    returncode=returncode,
+                    stdout=stdout.encode('utf-8') if stdout else b'',
+                    stderr=stderr.encode('utf-8') if stderr else b''
+                )
                 
-                if flags and flags.cont:
-                    info(f"{Fore.CYAN}continuing despite error...", pbar)
-                    return None
+                if captureoutput and stdout:
+                    printoutput(result=result, flags=flags or Namespace(verbose=False), 
+                                pbar=innerpbar, mainpbar=pbar)
+                
+                innerpbar.n = 100
+                innerpbar.colour = 'green'
+                innerpbar.refresh()
+                innerpbar.close()
+                
+                if returncode == 0:
+                    success("    ✓ completed successfully", pbar=innerpbar)
+                    return result
                 else:
-                    exit(returncode)
+                    error(f"\n❌ command failed with exit code {returncode}:", pbar)
+                    printcmd(f"  $ {cmdstr}", pbar)
+                    
+                    if stderr:
+                        error(f"{Fore.RED}{stderr}", pbar)
+                        suggestion = suggestfix(stderr)
+                        if suggestion:
+                            error(suggestion, pbar)
+                    
+                    if flags and flags.cont:
+                        info(f"{Fore.CYAN}continuing despite error...", pbar)
+                        return None
+                    else:
+                        exit(returncode)
     else:
         returncode, stdout, stderr = rungitcmd(gitcmd, env)
         
@@ -172,7 +224,7 @@ def runcmd(
         return None
         
     if len(cmd) > 1 and cmd[0] == "git" and not isinteractive:
-        return run_optimized_git_command(
+        return runoptimizedgitcmd(
             cmd=cmd,
             flags=flags,
             pbar=pbar,

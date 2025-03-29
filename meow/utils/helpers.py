@@ -181,7 +181,7 @@ def getgitcommands(
             # if arguments exist but no explicit message, treat args as message
             # Join all arguments into a single quoted message to preserve spaces
             message = " ".join(commandargs)
-            return ["git", "add", "."], ["git", "commit", "-m", f"{message}"]
+            return ["git", "add", "."], ["git", "commit", "-m", f"'{message}'"]
         else:
             # no args, allow empty message for interactive commit
             return ["git", "add", "."], ["git", "commit", "--allow-empty-message", "-m", ""]
