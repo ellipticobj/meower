@@ -6,9 +6,10 @@
 - Install dependencies: `pip install -r requirements.txt`
 
 ## Code Style Guidelines
-- **Imports**: Standard library first, then third-party (with # type: ignore), then local
-- **Naming**: snake_case for functions/variables, PascalCase for classes, ALL_CAPS for constants
-- **Type Hints**: Required for all function parameters and return values
+- **Imports**: Standard library first, then third-party, then local
+- **Naming**: flatcase for functions/variables, PascalCase for classes, UPPERCASEWITHNOSPACES for constants
+- **Type Hints**: Required for all function parameters and return values.
+- **Comments**: should all be in lowercase.
 - **Documentation**: Single-quote docstrings (`'''entry point'''`)
 - **Error Handling**: Use try/except blocks with descriptive error messages using colorama
 - **Command Structure**: Follow git-like command structure for CLI interface

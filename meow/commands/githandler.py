@@ -15,9 +15,33 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     
     # handle interactive commands separately
     if gitcmd in INTERACTIVECMDS:
-        cmd = ["git", gitcmd] + commandargs
-        result = runcmd(cmd, captureoutput=False)
-        exit(result.returncode if result else 1)
+        try:
+            with tqdm(
+                total=100,
+                desc=f"{Fore.CYAN}meowing...{Style.RESET_ALL}",
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                position=0,
+                leave=True
+            ) as mainpbar:
+                mainpbar.update(10)
+                
+                loadingmsg = messages.get(gitcmd, f"running git {gitcmd}...")
+                animation = startloadinganimation(loadingmsg)
+                
+                cmd = ["git", gitcmd] + commandargs
+                result = runcmd(cmd, captureoutput=False, isinteractive=True)
+                
+                stoploadinganimation(animation)
+                mainpbar.update(100)
+                mainpbar.refresh()
+                
+                from meow.utils.loggers import success
+                success("    ✓ completed successfully")
+                
+                exit(result.returncode if result else 1)
+        except KeyboardInterrupt:
+            error("user interrupted")
+            exit(1)
     
     try:
         with tqdm(

@@ -5,7 +5,7 @@ VERSION: Final[str] = "1.1.0"
 # commands that should use captureoutput=False for interactive use
 INTERACTIVECMDS = {
     "log", "add", "rebase", "bisect", "blame", 
-    "cherry-pick", "mergetool", "difftool"
+    "cherry-pick", "mergetool", "difftool", "diff"
 }
 
 # commands that require special handling for certain subcommands

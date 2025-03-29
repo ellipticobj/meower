@@ -1,9 +1,11 @@
 from sys import exit
-import os
+from select import select
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
+from fcntl import fcntl, F_SETFL
 from colorama import Fore, Style # type: ignore
-from typing import List, Optional, Dict
+from os import O_NONBLOCK, chdir, getcwd
+from typing import List, Optional, Dict, Tuple
 from subprocess import Popen, run as runsubprocess, CompletedProcess, CalledProcessError, PIPE
 
 from meow.utils.helpers import suggestfix, list2cmdline # type: ignore
@@ -11,8 +13,135 @@ from meow.utils.loaders import startloadinganimation, stoploadinganimation # typ
 from meow.utils.loggers import error, info, printcmd, printoutput, success, spacer # type: ignore
 from meow.utils.gitutils import getreporoot, getgitcmdenv, rungitcmd # type: ignore
 
-# cache for storing command execution times
-# commandtimingcache: Dict[str, float] = {}
+def handlepush(
+        cmd: List[str],
+        workdir: str,
+        env: Dict[str, str],
+        innerpbar: tqdm
+        ) -> Tuple[int, str, str]:
+    '''handles git push command'''
+    info("      pushing...", pbar=innerpbar)
+
+    process = Popen(
+        cmd,
+        cwd=workdir,
+        env=env,
+        stdout=PIPE,
+        stderr=PIPE,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
+    )
+
+    alloutput = []
+
+    allowedpatterns = {
+        "remote:": 25,
+        "Enumerating objects:": 40,
+        "Counting objects:": 50,
+        "Compressing objects:": 65,
+        "Writing objects:": 80,
+        "Total": 90
+    }
+
+    def processline(line: str, source: str) -> None:
+        line = line.strip()
+        if not line:
+            return
+            
+        alloutput.append(line)
+        
+        # Update progress bar based on known progress patterns
+        for pattern, progress in allowedpatterns.items():
+            if pattern in line:
+                innerpbar.n = progress
+                innerpbar.refresh()
+                break
+        
+        # Extract percentage from progress lines
+        if "%" in line:
+            try:
+                percent = int(line.split("%")[0].split()[-1])
+                if percent > innerpbar.n:
+                    innerpbar.n = min(percent, 95)  # Cap at 95% until complete
+                    innerpbar.refresh()
+            except (ValueError, IndexError):
+                pass
+        
+        if any(important in line.lower() for important in [
+            "error:", "fatal:", "authentication failed", 
+            "permission denied", "rejected", "failed"
+        ]):
+            error(f"      {line}", pbar=innerpbar)
+        elif any(status in line for status in [
+            "->", "To ", "* [new", "! [rejected]", 
+            "Everything up-to-date"
+        ]):
+            info(f"      {line}", pbar=innerpbar)
+
+    for pipe in [process.stdout, process.stderr]:
+        if pipe:
+            fcntl(pipe.fileno(), F_SETFL, O_NONBLOCK)
+
+    stdoutdata, stderrdata = [], []
+
+    while True:
+        reads = [stream for stream in [process.stdout, process.stderr] if stream]
+        if not reads:
+            break
+            
+        readable, _, _ = select(reads, [], [], 0.1)
+        
+        for stream in readable:
+            try:
+                line = stream.readline()
+                if not line:
+                    reads.remove(stream)
+                    continue
+                    
+                if stream == process.stdout:
+                    stdoutdata.append(line)
+                    processline(line, "stdout")
+                else:
+                    stderrdata.append(line)
+                    processline(line, "stderr")
+            except (IOError, OSError):
+                continue
+        
+        if process.poll() is not None and not readable:
+            break
+    
+    returncode = process.wait()
+
+    if returncode == 0:
+        innerpbar.n = 100
+        innerpbar.colour = 'green'
+        innerpbar.refresh()
+        
+        # Show final summary
+        spacer(pbar=innerpbar)
+        status_lines = []
+        for line in reversed(alloutput):
+            if any(pattern in line for pattern in [
+                "->", "new branch", "new tag", 
+                "Everything up-to-date"
+            ]):
+                status_lines.append(line)
+                if len(status_lines) >= 2:
+                    break
+        
+        for line in reversed(status_lines):
+            success(f"      {line}", pbar=innerpbar)
+    else:
+        innerpbar.colour = 'red'
+        error("      push failed", pbar=innerpbar)
+
+    return (
+        returncode,
+        "".join(stdoutdata),
+        "".join(stderrdata)
+    )
+
 
 def runoptimizedgitcmd(
     cmd: List[str],
@@ -40,7 +169,9 @@ def runoptimizedgitcmd(
     workdir = getreporoot()
     if workdir:
         # Change to git repo root
-        os.chdir(workdir)
+        chdir(workdir)
+    else:
+        workdir = getcwd()
     
     # format the command string for display
     cmdstr = list2cmdline(cmd)
@@ -58,145 +189,111 @@ def runoptimizedgitcmd(
     stdout: str = ""
     stderr: str = ""
     
-    if withprogress:
-        with tqdm(
-            total=100,
-            desc=f"{Fore.CYAN}  mrrping...{Style.RESET_ALL}",
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
-            position=0,
-            leave=False
-        ) as innerpbar:
-            innerpbar.n = 20
-            animation = startloadinganimation()
+    try:
+        if withprogress:
+            with tqdm(
+                total=100,
+                desc=f"{Fore.CYAN}  mrrping...{Style.RESET_ALL}",
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+                position=0,
+                leave=False
+            ) as innerpbar:
+                innerpbar.n = 20
+                animation = startloadinganimation()
 
-            if cmd[1] == "push":
-                process = Popen(
-                    cmd,
-                    cwd=workdir,
-                    env=env,
-                    stdout=PIPE,
-                    stderr=PIPE,
-                    bufsize=1,
-                    universal_newlines=True,
-                    text=True
-                )
-                
-                stdoutlines = []
-                stderrlines = []
-                
-                while True:
-                    # output progress
-                    stderrline = process.stderr.readline() if process.stderr else ''
-                    if stderrline:
-                        stderrlines.append(stderrline)
-                        if "Writing objects:" in stderrline \
-                            or "Compressing objects:" in stderrline \
-                            or "Enumerating objects:" in stderrline \
-                            or "Counting objects:" in stderrline:
-                            info(f"      {stderrline.strip()}", pbar=innerpbar)
-                    
-                    stdoutline = process.stdout.readline() if process.stdout else ''
-                    if stdoutline:
-                        stdoutlines.append(stdoutline)
-                    
-                    # check if process has finished
-                    if process.poll() is not None and not stderrline and not stdoutline:
-                        break
-                
-                if process.stdout:
-                    for line in process.stdout:
-                        stdoutlines.append(line)
-                
-                returncode = process.returncode
-                stdout = "".join(stdoutlines)
-                stderr = "".join(stderrlines)
-
-                output = (stderr + stdout).splitlines()
-                if len(output) > 3:
-                    # plint lines saying remote blah blah blah at the end
-                    lastlines = output[-3:]
-                    spacer(pbar=innerpbar)
-                    for line in lastlines:
-                        if line.strip():
-                            info(f"      {line.strip()}", pbar=innerpbar)
-                elif len(output) == 1:
-                    # print line saying everything up to date
-                    spacer(pbar=innerpbar)
-                    info(f"      {output[0]}", pbar=innerpbar)
-            else:
-                # Execute the actual command for non-push git commands
-                returncode, stdout, stderr = rungitcmd(gitcmd, env)
-                
-                innerpbar.n = 70
-                innerpbar.refresh()
-                stoploadinganimation(threadinfo=animation)
-                
-                result = CompletedProcess(
-                    args=cmd,
-                    returncode=returncode,
-                    stdout=stdout.encode('utf-8') if stdout else b'',
-                    stderr=stderr.encode('utf-8') if stderr else b''
-                )
-                
-                if captureoutput and stdout:
-                    printoutput(result=result, flags=flags or Namespace(verbose=False), 
-                                pbar=innerpbar, mainpbar=pbar)
-                
-                innerpbar.n = 100
-                innerpbar.colour = 'green'
-                innerpbar.refresh()
-                innerpbar.close()
-                
-                if returncode == 0:
-                    success("    ✓ completed successfully", pbar=innerpbar)
-                    return result
+                if cmd[1] == "push":
+                    returncode, stdout, stderr = handlepush(cmd, workdir, env, innerpbar)
+                    result = CompletedProcess(
+                        args=cmd,
+                        returncode=returncode,
+                        stdout=stdout.encode('utf-8') if stdout else b'',
+                        stderr=stderr.encode('utf-8') if stderr else b''
+                    )
                 else:
-                    error(f"\n❌ command failed with exit code {returncode}:", pbar)
-                    printcmd(f"  $ {cmdstr}", pbar)
+                    # execute the actual command for other non-push git commands
+                    returncode, stdout, stderr = rungitcmd(gitcmd, env)
                     
-                    if stderr:
-                        error(f"{Fore.RED}{stderr}", pbar)
-                        suggestion = suggestfix(stderr)
-                        if suggestion:
-                            error(suggestion, pbar)
+                    innerpbar.n = 70
+                    innerpbar.refresh()
+                    stoploadinganimation(threadinfo=animation)
                     
-                    if flags and flags.cont:
-                        info(f"{Fore.CYAN}continuing despite error...", pbar)
-                        return None
+                    result = CompletedProcess(
+                        args=cmd,
+                        returncode=returncode,
+                        stdout=stdout.encode('utf-8') if stdout else b'',
+                        stderr=stderr.encode('utf-8') if stderr else b''
+                    )
+                    
+                    if captureoutput and stdout:
+                        printoutput(result=result, flags=flags or Namespace(verbose=False), 
+                                    pbar=innerpbar, mainpbar=pbar)
+                    
+                    innerpbar.n = 100
+                    innerpbar.colour = 'green'
+                    innerpbar.refresh()
+                    innerpbar.close()
+                    
+                    if returncode == 0:
+                        success("    ✓ completed successfully", pbar=innerpbar)
+                        return result
                     else:
-                        exit(returncode)
-    else:
-        returncode, stdout, stderr = rungitcmd(gitcmd, env)
-        
-        result = CompletedProcess(
-            args=cmd,
-            returncode=returncode,
-            stdout=stdout.encode('utf-8') if stdout else b'',
-            stderr=stderr.encode('utf-8') if stderr else b''
-        )
-        
-        if returncode == 0:
-            if captureoutput and stdout:
-                printoutput(result, flags or Namespace(verbose=False), pbar, pbar)
-            success("    ✓ completed successfully", pbar=pbar)
-            return result
+                        error(f"\n❌ command failed with exit code {returncode}:", pbar)
+                        printcmd(f"  $ {cmdstr}", pbar)
+                        
+                        if stderr:
+                            error(f"{Fore.RED}{stderr}", pbar)
+                            suggestion = suggestfix(stderr)
+                            if suggestion:
+                                error(suggestion, pbar)
+                        
+                        if flags and flags.cont:
+                            info(f"{Fore.CYAN}continuing despite error...", pbar)
+                            return None
+                        else:
+                            exit(returncode)
         else:
-            error(f"\n❌ command failed with exit code {returncode}:", pbar)
-            printcmd(f"  $ {cmdstr}", pbar)
+            returncode, stdout, stderr = rungitcmd(gitcmd, env)
             
-            if stderr:
-                error(f"{Fore.RED}{stderr}", pbar)
-                suggestion = suggestfix(stderr)
-                if suggestion:
-                    error(suggestion, pbar)
+            result = CompletedProcess(
+                args=cmd,
+                returncode=returncode,
+                stdout=stdout.encode('utf-8') if stdout else b'',
+                stderr=stderr.encode('utf-8') if stderr else b''
+            )
             
-            if flags and flags.cont:
-                info(f"{Fore.CYAN}continuing despite error...", pbar)
-                return None
+            if returncode == 0:
+                if captureoutput and stdout:
+                    printoutput(result, flags or Namespace(verbose=False), pbar, pbar)
+                success("    ✓ completed successfully", pbar=pbar)
+                return result
             else:
-                exit(returncode)
-    
-    return None
+                error(f"\n❌ command failed with exit code {returncode}:", pbar)
+                printcmd(f"  $ {cmdstr}", pbar)
+                
+                if stderr:
+                    error(f"{Fore.RED}{stderr}", pbar)
+                    suggestion = suggestfix(stderr)
+                    if suggestion:
+                        error(suggestion, pbar)
+                
+                if flags and flags.cont:
+                    info(f"{Fore.CYAN}continuing despite error...", pbar)
+                    return None
+                else:
+                    exit(returncode)
+    except Exception as e:
+        error(f"      Command failed: {str(e)}", pbar=innerpbar)
+        return CompletedProcess(
+            args=cmd,
+            returncode=1,
+            stdout=b'',
+            stderr=str(e).encode('utf-8')
+        )
+    finally:
+        stoploadinganimation(threadinfo=animation)
+        innerpbar.close()
+
+    return result
 
 def runcmd(
     cmd: List[str],
@@ -262,7 +359,7 @@ def runcmd(
         if interactive:
             # run interactive commands directly
             # Determine working directory - use git root for git commands if available
-            workdir = getreporoot() if isgitcmd else os.getcwd()
+            workdir = getreporoot() if isgitcmd else getcwd()
             
             result = runsubprocess(
                 cmd, 
@@ -289,7 +386,7 @@ def runcmd(
                 
                 # run command with optimized capture settings
                 # Determine working directory - use git root for git commands if available
-                workdir = getreporoot() if isgitcmd else os.getcwd()
+                workdir = getreporoot() if isgitcmd else getcwd()
                 
                 result = runsubprocess(
                     cmd, 
@@ -329,7 +426,7 @@ def runcmd(
         
         # standard execution without progress display
         # determine working directory - use git root for git commands if available
-        workdir = getreporoot() if isgitcmd else os.getcwd()
+        workdir = getreporoot() if isgitcmd else getcwd()
         
         result = runsubprocess(
             cmd, 
