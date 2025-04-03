@@ -346,6 +346,7 @@ def runcmd(
     executes a command
     """
     flags = flags or Namespace(dry=False, cont=False, verbose=False)
+    animation: Any = None
 
     if not cmd:
         return None
@@ -394,7 +395,6 @@ def runcmd(
             )
             return result
 
-        animation: Any = None
         if withprogress:
             with tqdm(
                 total=PROGRESS_TOTAL,

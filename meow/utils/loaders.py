@@ -23,7 +23,7 @@ def loadingthread(
     while not stopevent.is_set():
         stdout.write(f'\r{frames[frame]} {fmtmessage}')
         stdout.flush()
-        sleep(0.1)
+        sleep(0.2)
         frame = (frame + 1) % len(frames) 
     
     # clear the line
