@@ -300,7 +300,7 @@ def suggestfix(errormsg: str) -> str:
     
     if not feedback:
         return "\n".join(feedback)
-    return "\n".join(["  suggestions:"] + feedback)
+    return "\n".join(feedback)
 
 def list2cmdline(cmd: List[str]) -> str:
     '''convert command list to string'''
