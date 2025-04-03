@@ -129,7 +129,7 @@ def handlepush(
             break
 
         try:
-            readable, _, _ = select(reads, [], [], 0.1)  # Shorter timeout
+            readable, _, _ = select(reads, [], [], 0.1)
         except OSError as e:
             error(f"Error during select: {e}", pbar=innerpbar)
             break  # exit the loop on select error
@@ -140,7 +140,7 @@ def handlepush(
         # update progress bar periodically, even if no new output
         currentline = time.time()
         if currentline - lastprogressupdatetime >= PUSH_PROGRESS_UPDATE_INTERVAL:
-            innerpbar.refresh()  # Refresh to keep it updating
+            innerpbar.refresh()
             lastprogressupdatetime = currentline
 
     # wait for threads to finish reading any remaining output
@@ -227,7 +227,7 @@ def runoptimizedgitcmd(
     returncode: int = 0
     stdout: str = ""
     stderr: str = ""
-    animation: Any = None  # changed type hint
+    animation: Any = None
 
     try:
         if withprogress:
@@ -393,7 +393,7 @@ def runcmd(
             gitenv = getgitcmdenv()
             cmdenv.update(gitenv)
 
-        # Handle interactive commands directly
+        # handle interactive commands directly
         if interactive:
             workdir = getreporoot() if isgitcmd else getcwd()
             result = runsubprocess(
@@ -405,7 +405,7 @@ def runcmd(
             )
             return result
 
-        animation: Any = None  # Changed type
+        animation: Any = None
         if withprogress:
             with tqdm(
                 total=PROGRESS_TOTAL,
@@ -465,7 +465,7 @@ def runcmd(
 
     except CalledProcessError as e:
         error(f"\n❌ command failed with exit code {e.returncode}:", pbar)
-        printcmd(f"  $ {list2cmdline(e.cmd)}", pbar) # changed this line
+        printcmd(f"  $ {list2cmdline(e.cmd)}", pbar)
         outstr = e.stdout.decode("utf-8", errors="replace") if e.stdout else ""
         errstr = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
 
@@ -486,12 +486,13 @@ def runcmd(
         if e.errno is not None:
             error(f"OSError: {e}  errno: {e.errno} {strerror(e.errno)}", pbar)
         else:
-            error(f"OsError: {e}", pbar)
+            error(f"OSError: {e}", pbar)
         return None
     except KeyboardInterrupt:
-        error("User interrupted", pbar)
+        error("user interrupted", pbar)
         return None
     finally:
-        stoploadinganimation(animation)  # ensure that the animation is stopped.
+        if animation:
+            stoploadinganimation(animation)  # ensure that the animation is stopped.
         # no need to close pbar here.
 

@@ -1,0 +1,35 @@
+[1mdiff --git a/meow/core/executor.py b/meow/core/executor.py[m
+[1mindex abe86f7..5973a69 100644[m
+[1m--- a/meow/core/executor.py[m
+[1m+++ b/meow/core/executor.py[m
+[36m@@ -393,7 +393,7 @@[m [mdef runcmd([m
+             gitenv = getgitcmdenv()[m
+             cmdenv.update(gitenv)[m
+ [m
+[31m-        # Handle interactive commands directly[m
+[32m+[m[32m        # handle interactive commands directly[m
+         if interactive:[m
+             workdir = getreporoot() if isgitcmd else getcwd()[m
+             result = runsubprocess([m
+[36m@@ -405,7 +405,7 @@[m [mdef runcmd([m
+             )[m
+             return result[m
+ [m
+[31m-        animation: Any = None  # Changed type[m
+[32m+[m[32m        animation: Any = None[m
+         if withprogress:[m
+             with tqdm([m
+                 total=PROGRESS_TOTAL,[m
+[36m@@ -486,10 +486,10 @@[m [mdef runcmd([m
+         if e.errno is not None:[m
+             error(f"OSError: {e}  errno: {e.errno} {strerror(e.errno)}", pbar)[m
+         else:[m
+[31m-            error(f"OsError: {e}", pbar)[m
+[32m+[m[32m            error(f"OSError: {e}", pbar)[m
+         return None[m
+     except KeyboardInterrupt:[m
+[31m-        error("User interrupted", pbar)[m
+[32m+[m[32m        error("user interrupted", pbar)[m
+         return None[m
+     finally:[m
+         stoploadinganimation(animation)  # ensure that the animation is stopped.[m
