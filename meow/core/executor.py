@@ -10,7 +10,7 @@ from colorama import Fore, Style # type: ignore
 import time
 import threading
 
-from meow.utils.helpers import suggestfix, list2cmdline  # type: ignore
+from meow.utils.helpers import displayerror, list2cmdline  # type: ignore
 from meow.utils.loaders import startloadinganimation, stoploadinganimation  # type: ignore
 from meow.utils.loggers import error, info, printcmd, printoutput, success, spacer  # type: ignore
 from meow.utils.gitutils import getreporoot, getgitcmdenv, rungitcmd  # type: ignore
@@ -286,17 +286,7 @@ def runoptimizedgitcmd(
                 else:
                     error(f"\n❌ command failed with exit code {returncode}:", pbar)
                     printcmd(f"  $ {cmdstr}", pbar)
-                    if stderr:
-                        error(f"  e {Fore.RED}{stderr}", pbar)
-                        suggestion = suggestfix(stderr)
-                        if suggestion:
-                            error(f"    s {suggestion}", pbar)
-                    elif stdout:
-                        for line in stdout.split('\n'):
-                            error(f"    e {line}", pbar)
-                        suggestion = suggestfix(stdout)
-                        if suggestion:
-                            error(suggestion, pbar)
+                    displayerror(stderr, stdout, pbar)
 
                     if flags and flags.cont:
                         info(f"{Fore.CYAN}continuing despite error...", pbar)
@@ -321,16 +311,7 @@ def runoptimizedgitcmd(
             else:
                 error(f"\n❌ command failed with exit code {returncode}:", pbar)
                 printcmd(f"  $ {cmdstr}", pbar)
-                if stderr:
-                    error(f"{Fore.RED}{stderr}", pbar)
-                    suggestion = suggestfix(stderr)
-                    if suggestion:
-                        error(suggestion, pbar)
-                elif stdout:
-                    info(f"{Fore.BLACK}{stdout}", pbar)
-                    suggestion = suggestfix(stdout)
-                    if suggestion:
-                        error(suggestion, pbar)
+                displayerror(stderr, stdout, pbar)
 
                 if flags and flags.cont:
                     info(f"{Fore.CYAN}continuing despite error...", pbar)
@@ -350,8 +331,6 @@ def runoptimizedgitcmd(
             stoploadinganimation(threadinfo=animation)  # ensure animation is stopped
 
     return result
-
-
 
 def runcmd(
     cmd: StrList,
@@ -479,16 +458,7 @@ def runcmd(
         outstr = e.stdout.decode("utf-8", errors="replace") if e.stdout else ""
         errstr = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
 
-        if outstr:
-            info(f"{Fore.BLACK}{outstr}", pbar)
-            suggestion = suggestfix(outstr)
-            if suggestion:
-                error(suggestion, pbar)
-        if errstr:
-            error(f"{Fore.RED}{errstr}", pbar)
-            suggestion = suggestfix(errstr)
-            if suggestion:
-                error(suggestion, pbar)
+        displayerror(errstr, outstr, pbar)
 
         if not flags.cont:
             exit(e.returncode)

@@ -1,7 +1,9 @@
 import sys
 from os import getcwd
+
+from tqdm import tqdm
 from meow.config import VERSION # type: ignore
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
@@ -235,72 +237,14 @@ def displaysteps(steps: List) -> None:
         info(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.WHITE}{step.name}{Style.RESET_ALL}")
     spacer()
 
-def suggestfix(errormsg: str) -> str:
-    '''suggest fixes for common git errors'''
-    msg: str = errormsg.lower()
-    feedback: List[str] = []
-
-    # large files
-    if "large file storage" in msg:
-        feedback.append("    s some of your files are too large for git. see https://gh.io/lfs to find out more.")
-    
-    # push/pull related errors
-    if ("non-fast-forward" in msg or "rejected" in msg) and "large file storage" not in msg:
-        feedback.append("    s try running `git pull` before pushing, or use --force-with-lease")
-    if "failed to push some refs" in msg and "large file storage" not in msg:
-        feedback.append("    s remote contains work you do not have locally. run `git fetch` then `git pull`")
-    
-    # authentication errors
-    if "permission denied" in msg:
-        feedback.append("    s do you have permissions?")
-    if "authentication failed" in msg:
-        feedback.append("    s verify your username and password/token are correct")
-    if "could not read from remote repository" in msg:
-        feedback.append("    s check repo url and your network connection")
-    
-    # merge/conflict errors
-    if "merge conflict" in msg:
-        feedback.append("    s resolve conflicts manually then commit the result")
-    if "overwritten by merge" in msg:
-        feedback.append("    s stash your changes first with `git stash`, then pull")
-    if "your local changes to the following files would be overwritten by" in msg:
-        feedback.append("    s stash or commit your changes before pulling")
-    
-    # branch related errors
-    if "not a valid object name" in msg or "did not match any file(s) known to git" in msg:
-        feedback.append("    s is your branch name correct?")
-    if "a branch named" in msg and "already exists" in msg:
-        feedback.append("    s use a different branch name")
-    if "src refspec" in msg and "does not match any" in msg:
-        feedback.append("    s branch does not exist... did you misspell something?")
-    
-    # commit related errors
-    if "nothing to commit" in msg:
-        feedback.append("    s nothing to commit")
-    if "Your branch is up to date with" in msg:
-        feedback.append("    s your branch is up to date")
-    if "no changes added to commit" in msg:
-        feedback.append("    s stage changes first with `git add` before committing")
-    if "please tell me who you are" in msg:
-        feedback.append("    s set your identity with: `git config --global user.email \"you@example.com\"` and `git config --global user.name \"Your Name\"`")
-    
-    # submodule errors
-    if "could not resolve host" in msg:
-        feedback.append("    s check your internet connection or repository URL")
-    if "no submodule mapping found" in msg:
-        feedback.append("    s initialize submodules with `git submodule init` first")
-    
-    # git config errors
-    if "bad config file" in msg:
-        feedback.append("    s check format of your git config file")
-    
-    # if no specific feedback, give general git info
-    if not feedback and "fatal:" in msg:
-        feedback.append("    s check `git help` or `git help <command>` for more information")
-    
-    if not feedback:
-        return "\n".join(feedback)
-    return "\n".join(feedback)
+def displayerror(errstr: str, outstr: str, pbar: Optional[tqdm]) -> None:
+    if errstr:
+        error(f"{Fore.RED}{errstr}", pbar)
+        for line in errstr.split('\n'):
+            error(f"    e {line}", pbar)
+    elif outstr:
+        for line in outstr.split('\n'):
+            info(f"    i {line}", pbar)
 
 def list2cmdline(cmd: List[str]) -> str:
     '''convert command list to string'''
