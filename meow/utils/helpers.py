@@ -276,15 +276,13 @@ def suggestfix(errormsg: str) -> str:
     
     # commit related errors
     if "nothing to commit" in msg:
-        feedback.append(f"    s {Fore.CYAN}nothing to commit")
+        feedback.append("    s nothing to commit")
+    if "Your branch is up to date with" in msg:
+        feedback.append("    s your branch is up to date")
     if "no changes added to commit" in msg:
         feedback.append("    s stage changes first with `git add` before committing")
     if "please tell me who you are" in msg:
         feedback.append("    s set your identity with: `git config --global user.email \"you@example.com\"` and `git config --global user.name \"Your Name\"`")
-    
-    # status msgs
-    if "already up to date" in msg or "already up-to-date" in msg:
-        feedback.append(f"    s {Fore.CYAN}everything up to date")
     
     # submodule errors
     if "could not resolve host" in msg:
