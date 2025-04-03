@@ -287,7 +287,7 @@ def runoptimizedgitcmd(
                     error(f"\n❌ command failed with exit code {returncode}:", pbar)
                     printcmd(f"  $ {cmdstr}", pbar)
                     
-                    error(f"{Fore.RED}{stdout}", pbar)
+                    error(f"{Fore.RED}{stderr}", pbar)
                     suggestion = suggestfix(stderr)
                     if suggestion:
                         error(suggestion, pbar)
@@ -320,6 +320,11 @@ def runoptimizedgitcmd(
                     suggestion = suggestfix(stderr)
                     if suggestion:
                         error(suggestion, pbar)
+                elif stdout:
+                    info(f"{Fore.BLACK}{stdout}", pbar)
+                    suggestion = suggestfix(stdout)
+                    if suggestion:
+                        error(suggestion, pbar)
 
                 if flags and flags.cont:
                     info(f"{Fore.CYAN}continuing despite error...", pbar)
@@ -335,8 +340,8 @@ def runoptimizedgitcmd(
             stderr=str(e).encode("utf-8"),
         )
     finally:
-        stoploadinganimation(threadinfo=animation)  # ensure animation is stopped
-        # no need to close pbar here, it is not always created here.
+        if animation:
+            stoploadinganimation(threadinfo=animation)  # ensure animation is stopped
 
     return result
 
@@ -353,7 +358,7 @@ def runcmd(
     env: Optional[Dict[str, str]] = None,
 ) -> CommandResult:
     """
-    Executes a command, handling interactivity, progress, and errors.
+    executes a command
     """
     flags = flags or Namespace(dry=False, cont=False, verbose=False)
 
@@ -470,6 +475,9 @@ def runcmd(
 
         if outstr:
             info(f"{Fore.BLACK}{outstr}", pbar)
+            suggestion = suggestfix(outstr)
+            if suggestion:
+                error(suggestion, pbar)
         if errstr:
             error(f"{Fore.RED}{errstr}", pbar)
             suggestion = suggestfix(errstr)
