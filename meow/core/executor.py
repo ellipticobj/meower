@@ -290,9 +290,10 @@ def runoptimizedgitcmd(
                         error(f"{Fore.RED}{stderr}", pbar)
                         suggestion = suggestfix(stderr)
                         if suggestion:
-                            error(suggestion, pbar)
+                            error(f"    s {suggestion}", pbar)
                     elif stdout:
-                        info(f"{Fore.BLACK}{stdout}", pbar)
+                        for line in stdout.split():
+                            error(f"    e {stdout}", pbar)
                         suggestion = suggestfix(stdout)
                         if suggestion:
                             error(suggestion, pbar)
