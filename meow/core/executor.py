@@ -287,7 +287,7 @@ def runoptimizedgitcmd(
                     error(f"\n❌ command failed with exit code {returncode}:", pbar)
                     printcmd(f"  $ {cmdstr}", pbar)
                     
-                    error(f"{Fore.RED}{stderr}", pbar)
+                    error(f"{Fore.RED}{stdout}", pbar)
                     suggestion = suggestfix(stderr)
                     if suggestion:
                         error(suggestion, pbar)
