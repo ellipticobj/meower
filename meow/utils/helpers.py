@@ -241,10 +241,10 @@ def displayerror(errstr: str, outstr: str, pbar: Optional[tqdm]) -> None:
     if errstr:
         error(f"{Fore.RED}{errstr}", pbar)
         for line in errstr.split('\n'):
-            error(f"    e {line}", pbar)
+            error(f"  e {line}", pbar)
     elif outstr:
         for line in outstr.split('\n'):
-            info(f"    i {line}", pbar)
+            info(f"  i {line}", pbar)
 
 def list2cmdline(cmd: List[str]) -> str:
     '''convert command list to string'''

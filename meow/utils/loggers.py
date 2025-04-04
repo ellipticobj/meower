@@ -174,14 +174,15 @@ def showcommitresult(
                     message=parts[3]
                 ), mainpbar)
         else:
-            # libit output to first 4 lines with count of remaining lines
+            # limit output to first 4 lines with count of remaining lines
             lines = output.split('\n')
             if len(lines) > 5:
                 for line in lines[:4]:
                     info(f"      i {Fore.CYAN}{line}", mainpbar)
                 info(f"      i {Fore.CYAN}...({len(lines) - 4} lines remaining)", mainpbar)
             else:
-                info(f"      i {Fore.CYAN}{output}", mainpbar)
+                for line in output.split('\n'):
+                    info(f"      i {Fore.CYAN}{line}", mainpbar)
     except Exception as e:
         error(f"error showing commit: {str(e)}", mainpbar)
 
@@ -195,11 +196,11 @@ def showresult(
         # limit output to first 4 lines with count of remaining lines
         if len(lines) > 5:
             for line in lines[:4]:
-                info(f"    i {Fore.CYAN}{line}", mainpbar)
-            info(f"    i {Fore.CYAN}...({len(lines) - 4} lines remaining)", mainpbar)
+                info(f"  i {Fore.CYAN}{line}", mainpbar)
+            info(f"  i {Fore.CYAN}...({len(lines) - 4} lines remaining)", mainpbar)
         else:
             for line in lines:
-                info(f"    i {Fore.CYAN}{line}", mainpbar)
+                info(f"  i {Fore.CYAN}{line}", mainpbar)
 
 def spacer(pbar: Optional[tqdm] = None, height: int = 1) -> str:
     '''add empty lines for spacing'''
