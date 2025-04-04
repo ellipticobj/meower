@@ -5,9 +5,10 @@ from tqdm import tqdm # type: ignore
 from meow.config import VERSION # type: ignore
 from typing import List, Optional, Tuple
 from colorama import Fore, Style # type: ignore
-from argparse import ArgumentParser, _ArgumentGroup, Namespace
+from argparse import ArgumentParser, _ArgumentGroup, Namespace, SUPPRESS
 
 from meow.utils.loggers import error, info, spacer
+from meow.utils.gitutils import getreporoot
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -17,10 +18,11 @@ def initcommands(parser: ArgumentParser) -> None:
 
     # general options
     generalgrp: _ArgumentGroup = parser.add_argument_group("general options")
-    generalgrp.add_argument("-v", "--version", action='store_true', help="show version")
+    generalgrp.add_argument("-V", "--version", action='store_true', help="show version")
     generalgrp.add_argument("-c", "--continue", dest="cont", action='store_true', help="continue after errors")
     generalgrp.add_argument("-q", "--quiet", action='store_true', help="suppress output")
-    generalgrp.add_argument("-ve", "--verbose", action='store_true', help="verbose output")
+    generalgrp.add_argument("-v", "--verbose", action='store_true', help="verbose output")
+    generalgrp.add_argument("-r", "--run", action='store_true', help="run git commands directly")
     generalgrp.add_argument("--dry", dest = "dry", action='store_true', help="preview commands without execution")
     generalgrp.add_argument("--status", action='store_true', help="show git status before executing commands")
 
@@ -47,7 +49,9 @@ def initcommands(parser: ArgumentParser) -> None:
     advancedgrp: _ArgumentGroup = parser.add_argument_group("advanced options")
     advancedgrp.add_argument("--update-submodules", dest="updatesubmodules", action='store_true', help="update submodules recursively")
     advancedgrp.add_argument("--stash", action='store_true', help="stash changes before pull")
-    advancedgrp.add_argument("--report", action='store_true', help="generate and output a report after everything is run") # TODO: add option to save to file, and to specify filename
+    advancedgrp.add_argument("--report", action='store_true', help="generate and output a report after everything is run")
+
+    parser.add_argument('--meow', action='store_true', help=SUPPRESS)
 
 
 def validateargs(args: Namespace) -> None:
@@ -229,6 +233,11 @@ def displayheader() -> None:
     '''displays program header'''
     info(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
     info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
+    
+    # display repository root if in a git repo
+    reporoot = getreporoot()
+    if reporoot:
+        info(f"git repository: {Style.BRIGHT}{reporoot}{Style.RESET_ALL}\n")
 
 def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''

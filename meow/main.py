@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace
 from tqdm import tqdm # type: ignore
 from colorama import init, Fore, Style # type: ignore
 
-from meow.utils.loggers import success, info # type: ignore
+from meow.utils.loggers import success # type: ignore
 from typing import List
 
 try:
@@ -62,33 +62,24 @@ def main() -> None:
     # display header
     displayheader()
 
-    # display get repo root 
-    from meow.utils.gitutils import getreporoot
-    reporoot = getreporoot()
-    if reporoot:
-        info(f"git repository: {Style.BRIGHT}{reporoot}{Style.RESET_ALL}\n")
-    
-    # handle direct git command syntax: meow <git-command> [args...]
-    if len(argv) >= 2:
-        # easter egg :3
-        if argv[1] == "meow":
-            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-            exit(0)
-        
-        # check for git command
-        if argv[1].lower() in KNOWNCOMMANDS:
-            # warn if not in a git repo except for commands that can work outside a repo (init, clone, help)
-            safecmds: List[str] = ['init', 'clone', 'help', 'version']
-            if not isgitrepo and argv[1].lower() not in safecmds:
-                error("not in a git repository")
-                error("tip: use 'meow init' to create a new repository")
-                exit(1)
-            
-            # handle git command
-            handlegitcommands(argv, GITCOMMANDMESSAGES)
-
     # parse arguments for pipeline mode
     args: Namespace = parser.parse_args()
+
+    if args.run:
+        # warn if not in a git repo except for commands that can work outside a repo (init, clone, help)
+        safecmds: List[str] = ['init', 'clone', 'help', 'version']
+        if not isgitrepo and argv[1].lower() not in safecmds:
+            error("not in a git repository")
+            error("tip: use 'meow init' to create a new repository")
+            exit(1)
+        
+        # handle git command
+        handlegitcommands(argv, GITCOMMANDMESSAGES)
+
+    # easter egg :3
+    if args.meow:
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+        exit(0)
 
     # display version if --version
     if args.version:
