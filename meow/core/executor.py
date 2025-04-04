@@ -239,7 +239,7 @@ def runoptimizedgitcmd(
                 leave=False,
             ) as innerpbar:
                 innerpbar.n = PROGRESS_INITIAL
-                animation = startloadinganimation()  # store the animation thread
+                animation = startloadinganimation(pbar=innerpbar)  # store the animation thread
 
                 if cmd[1] == "push":
                     returncode, stdout, stderr = handlepush(
@@ -404,7 +404,7 @@ def runcmd(
                 leave=False,
             ) as innerpbar:
                 innerpbar.n = PROGRESS_INITIAL
-                animation = startloadinganimation()
+                animation = startloadinganimation(pbar=innerpbar)
 
                 workdir = getreporoot() if isgitcmd else getcwd()
                 result = runsubprocess(
