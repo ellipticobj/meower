@@ -1,10 +1,10 @@
 '''
 git utilities for meower, written with help from anthropic's claude
 '''
-import os
+from git import Repo, GitCommandError, NoSuchPathError, InvalidGitRepositoryError
+from os import path, getcwd, environ, chdir, getuid
 from typing import List, Optional, Dict, Tuple, Union
 from subprocess import run as runsubprocess, PIPE, CalledProcessError
-import git
 
 def getreporoot() -> Optional[str]:
     '''get the git repository root directory'''
@@ -14,11 +14,11 @@ def getreporoot() -> Optional[str]:
             check=True,
             stdout=PIPE,
             stderr=PIPE,
-            cwd=os.getcwd()
+            cwd=getcwd()
         )
         rootpath = result.stdout.decode('utf-8').strip()
         
-        if os.path.exists(rootpath):
+        if path.exists(rootpath):
             return rootpath
         return None
     except (CalledProcessError, FileNotFoundError):
@@ -30,8 +30,8 @@ class GitRunner:
         try:
             gitroot = getreporoot()
             if gitroot:
-                self.repo = git.Repo(gitroot)
-        except (git.InvalidGitRepositoryError, git.NoSuchPathError):
+                self.repo = Repo(gitroot)
+        except (InvalidGitRepositoryError, NoSuchPathError):
             pass
     
     def run(self, cmd: List[str], env: Optional[Dict[str, str]] = None) -> Tuple[int, str, str]:
@@ -54,7 +54,7 @@ class GitRunner:
                 
                 output = gitcmd.execute(cmd)
                 return 0, output, ""
-            except git.GitCommandError as e:
+            except GitCommandError as e:
                 statuscode: Union[str, int, Exception, None] = e.status
                 if not isinstance(statuscode, int):
                     statuscode = 1
@@ -65,10 +65,10 @@ class GitRunner:
             result = runsubprocess(
                 gitcmd,
                 check=False,
-                cwd=getreporoot() or os.getcwd(),
+                cwd=getreporoot() or getcwd(),
                 stdout=PIPE,
                 stderr=PIPE,
-                env=env or os.environ.copy()
+                env=env or environ.copy()
             )
             return (
                 result.returncode,
@@ -81,17 +81,17 @@ class GitRunner:
 def ensuregitdir(func):
     '''decorator to ensure git commands run from the repository root'''
     def wrapper(*args, **kwargs):
-        originaldir = os.getcwd()
+        originaldir = getcwd()
         gitroot = getreporoot()
         
         if gitroot:
-            os.chdir(gitroot)
+            chdir(gitroot)
         
         try:
             return func(*args, **kwargs)
         finally:
             # restore original directory
-            os.chdir(originaldir)
+            chdir(originaldir)
     
     return wrapper
 
@@ -118,19 +118,19 @@ def rungitcmd(cmd: List[str], env: Optional[Dict[str, str]] = None) -> Tuple[int
 
 def getgitcmdenv() -> Dict[str, str]:
     '''gets environment variables for git commands'''
-    env = os.environ.copy()
+    env = environ.copy()
     
     # ensure git has access to the global config
     if 'HOME' in env:
-        gitconfigpath = os.path.join(env['HOME'], '.gitconfig')
-        if os.path.exists(gitconfigpath):
+        gitconfigpath = path.join(env['HOME'], '.gitconfig')
+        if path.exists(gitconfigpath):
             # make sure git can find global config
             env['GIT_CONFIG_GLOBAL'] = gitconfigpath
         
         # ensure XDG config is found if it exists
-        xdgconfigpath = os.path.join(env['HOME'], '.config/git/config')
-        if os.path.exists(xdgconfigpath):
-            env['XDG_CONFIG_HOME'] = os.path.join(env['HOME'], '.config')
+        xdgconfigpath = path.join(env['HOME'], '.config/git/config')
+        if path.exists(xdgconfigpath):
+            env['XDG_CONFIG_HOME'] = path.join(env['HOME'], '.config')
     
     try:
         # get user.name from git config
@@ -155,11 +155,11 @@ def getgitcmdenv() -> Dict[str, str]:
         pass
     
     # for SSH operations
-    if 'SSH_AUTH_SOCK' not in env and os.path.exists('/run/user'):
+    if 'SSH_AUTH_SOCK' not in env and path.exists('/run/user'):
         # try to find SSH agent socket for git operations that need authentication
-        uid = os.getuid()
+        uid = getuid()
         sshsock = f'/run/user/{uid}/keyring/ssh'
-        if os.path.exists(sshsock):
+        if path.exists(sshsock):
             env['SSH_AUTH_SOCK'] = sshsock
     
     return env

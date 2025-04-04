@@ -7,8 +7,8 @@ from os import O_NONBLOCK, chdir, getcwd, strerror
 from typing import List, Optional, Dict, Tuple, Any
 from subprocess import Popen, CompletedProcess, CalledProcessError, PIPE, run as runsubprocess
 from colorama import Fore, Style # type: ignore
-import time
-import threading
+from time import time
+from threading import Thread
 
 from meow.utils.helpers import displayerror, list2cmdline  # type: ignore
 from meow.utils.loaders import startloadinganimation, stoploadinganimation  # type: ignore
@@ -59,7 +59,7 @@ def handlepush(
     alloutput: StrList = []
     stdoutbuff: StrList = []
     stderrbuff: StrList = []
-    lastprogressupdatetime = time.time()
+    lastprogressupdatetime = time()
     
     def process_output(line: str, source: str) -> None:
         line = line.strip()
@@ -111,10 +111,10 @@ def handlepush(
                 exit(1)
 
     # use threads for reading stdout and stderr
-    stdoutthread = threading.Thread(
+    stdoutthread = Thread(
         target=read_output, args=(process.stdout, stdoutbuff, "stdout")
     )
-    stderrthread = threading.Thread(
+    stderrthread = Thread(
         target=read_output, args=(process.stderr, stderrbuff, "stderr")
     )
     stdoutthread.start()
@@ -136,7 +136,7 @@ def handlepush(
             break
 
         # update progress bar periodically, even if no new output
-        currentline = time.time()
+        currentline = time()
         if currentline - lastprogressupdatetime >= PUSH_PROGRESS_UPDATE_INTERVAL:
             innerpbar.refresh()
             lastprogressupdatetime = currentline

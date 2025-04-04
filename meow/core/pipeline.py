@@ -1,4 +1,4 @@
-import os
+from os import path, makedirs
 from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
@@ -144,9 +144,9 @@ class Pipeline:
         # save or display report
         if saveto:
             # ensure directory exists
-            reportdir = os.path.dirname(saveto)
-            if reportdir and not os.path.exists(reportdir):
-                os.makedirs(reportdir, exist_ok=True)
+            reportdir = path.dirname(saveto)
+            if reportdir and not path.exists(reportdir):
+                makedirs(reportdir, exist_ok=True)
                 
             # write report with proper formatting
             with open(saveto, 'w') as f:

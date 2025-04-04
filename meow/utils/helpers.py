@@ -1,7 +1,7 @@
-import sys
+from sys import exit
 from os import getcwd
 
-from tqdm import tqdm
+from tqdm import tqdm # type: ignore
 from meow.config import VERSION # type: ignore
 from typing import List, Optional, Tuple
 from colorama import Fore, Style # type: ignore
@@ -54,7 +54,7 @@ def validateargs(args: Namespace) -> None:
     '''validate argument comb'''
     if not args.amend and not args.nomsg and not args.message:
         error("commit message required (use --amend, --no-message, or provide message)")
-        sys.exit(1)
+        exit(1)
 
 def getpipelinesteps(args: Namespace) -> List:
     '''get pipeline steps'''
@@ -158,7 +158,7 @@ def _parseupstreamargs(args: Namespace, pushcmd: List[str]) -> List[str]:
         pushcmd.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
     else:
         error("invalid upstream format. use 'remote branch' or 'remote/branch'")
-        sys.exit(1)
+        exit(1)
     
     return pushcmd
 
