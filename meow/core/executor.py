@@ -45,8 +45,6 @@ def handlepush(
     env: Dict[str, str],
     innerpbar: tqdm,
 ) -> Tuple[int, str, str]:
-    info("      pushing...", pbar=innerpbar)
-
     process = Popen(
         cmd,
         cwd=workdir,
@@ -81,10 +79,10 @@ def handlepush(
                 "failed",
             ]
         ):
-            error(f"      {line}", pbar=innerpbar)
+            error(f"  {line}", pbar=innerpbar)
 
         if any(pattern in line for pattern in ALLOWED_PUSH_PATTERNS):
-            info(f"      {line}", pbar=innerpbar)
+            info(f"  {line}", pbar=innerpbar)
 
         if "%" in line:
             try:
@@ -171,10 +169,10 @@ def handlepush(
                     break
 
         for line in reversed(statuslines):
-            success(f"      {line}", pbar=innerpbar)
+            success(f"  {line}", pbar=innerpbar)
     else:
         innerpbar.colour = "red"
-        error("      push failed", pbar=innerpbar)
+        error("  push failed", pbar=innerpbar)
 
     return (
         returncode,

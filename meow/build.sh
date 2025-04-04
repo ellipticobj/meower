@@ -43,15 +43,7 @@ needs_rebuild() {
     stored_hashes=$(load_hashes)
     
     # extract hash using python3 to properly handle JSON
-    stored_hash=$(python3 -c "
-import json, sys
-
-try:
-    hashes = json.loads('$stored_hashes')
-    print(hashes.get('$file', ''))
-except:
-    print('')
-")
+    stored_hash=$(echo "$stored_hashes" | jq -r ".[\"$file\"] // \"\"")
     
     if [ -z "$stored_hash" ] || [ "$stored_hash" != "$current_hash" ]; then
         echo "$current_hash"
@@ -171,6 +163,7 @@ if [ ${#CHANGED_FILES[@]} -gt 0 ]; then
                 --inplace \
                 --sources="$file" \
                 --force \
+                --parallel=$CORES \
                 --verbose
         done
     fi
