@@ -173,6 +173,6 @@ cython_debug/
 .pypirc
 
 _MEI*/
-CLAUDE.md
+**/CLAUDE.md
 
 .build_cache/

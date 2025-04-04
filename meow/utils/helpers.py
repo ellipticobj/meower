@@ -228,7 +228,7 @@ def getgitcommands(
 def displayheader() -> None:
     '''displays program header'''
     info(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-    info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
+    info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
 
 def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''

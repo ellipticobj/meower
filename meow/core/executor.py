@@ -384,7 +384,7 @@ def runcmd(
             cmdenv.update(gitenv)
 
         # handle interactive commands directly
-        if interactive:
+        if interactive: 
             workdir = getreporoot() if isgitcmd else getcwd()
             result = runsubprocess(
                 cmd,
