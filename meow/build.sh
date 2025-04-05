@@ -231,7 +231,7 @@ echo -e "\nExecutable size:"
 du -sh dist/meow
 file dist/meow
 
-cp "dist/meow" "./dist/meow-${ARCH}"
+mv "dist/meow" "./dist/meow-${ARCH}"
 echo "executable at: $(pwd)/dist/meow-${ARCH}"
 
 # final hash update for any newly created files that weren't in the original list

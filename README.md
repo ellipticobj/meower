@@ -1,18 +1,24 @@
-# meow
+# meow v1
 a git wrapper made in python  
-version 1!!! major (work in progress) rewrite of the code, with better organization.  
-
-# on hold
 
 ## installation
-this is currently only for linux arm64 systems.  
+this is currently only for linux and macos m1.  
 
 run this to install the latest release: (untested for now)
 ```
 curl -fsSL "https://raw.githubusercontent.com/ellipticobj/meower/refs/heads/main/install.sh" | sh
 ```
 
-or download the latest file from [github releases](https://github.com/ellipticobj/meower/releases/latest)
+or
+
+use pip:
+```
+pip install meower
+```
+
+or 
+
+download the latest file from [github releases](https://github.com/ellipticobj/meower/releases/latest)
 
 ## usage:
 run `meow` to get detailed help

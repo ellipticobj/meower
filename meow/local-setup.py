@@ -10,7 +10,6 @@ CFLAGS = [
     "-fno-unwind-tables",
     "-fno-asynchronous-unwind-tables",
     
-    
     "-funroll-loops",
     "-ffunction-sections",
     "-fdata-sections",
@@ -27,14 +26,14 @@ LDFLAGS = [
 
 MACROS = [
     ('PY_SSIZE_T_CLEAN', "1"),
-    ('CYTHON_USE_PYLONG_INTERNALS', "0"),  # Not compatible with Python 3.13
-    ('CYTHON_FAST_THREAD_STATE', "0"),     # Not compatible with Python 3.13
+    ('CYTHON_USE_PYLONG_INTERNALS', "0"),
+    ('CYTHON_FAST_THREAD_STATE', "0"),
     ('CYTHON_NO_PYINIT_EXPORT', "1"),
     ('CYTHON_USE_EXC_INFO_STACK', "0"),
-    ('CYTHON_USE_TYPE_SLOTS', "1"),        # Use type slots for performance
-    ('CYTHON_FAST_PYCALL', "1"),           # Fast Python calls
-    ('CYTHON_PROFILE', "0"),               # Disable profiling
-    ('CYTHON_TRACE', "0")                  # Disable tracing
+    ('CYTHON_USE_TYPE_SLOTS', "1"),
+    ('CYTHON_FAST_PYCALL', "1"),
+    ('CYTHON_PROFILE', "0"),
+    ('CYTHON_TRACE', "0")
 ]
 
 COMPILERDIRECTIVES={
