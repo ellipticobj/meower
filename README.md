@@ -6,7 +6,7 @@ this is currently only for linux and macos m1.
 
 run this to install the latest release: (untested for now)
 ```
-curl -fsSL "https://raw.githubusercontent.com/ellipticobj/meower/refs/heads/main/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/ellipticobj/meower/refs/heads/v1/gitinstall.sh" | bash
 ```
 
 or
@@ -42,7 +42,4 @@ build:
 ![screenshot](assets/screenshot.png)
 
 # roadmap
-- better help tips when error
-- debug everything
-- release a stable build
-- feature improvements (ask for user input for certain errors like no email detected)
+- feature improvements (ask for user input for certain errors like no email detected)     
