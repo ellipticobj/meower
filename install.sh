@@ -1,8 +1,12 @@
 #!/bin/bash
-set -euo pipefail
 
-# Detect OS for platform-specific flags
+echo "installing meower..."
+
 OS=$(uname)
+ARCH=$(uname -m)
+
+echo "detected: $OS on $ARCH"
+
 if [[ "$OS" == "Linux" ]]; then
     COMPILER_FLAGS="-Oz -flto=4 -fno-ident"
     LINKER_FLAGS="-Wl,--gc-sections -Wl,--build-id=none"
@@ -10,12 +14,11 @@ elif [[ "$OS" == "Darwin" ]]; then
     COMPILER_FLAGS="-Oz -flto"
     LINKER_FLAGS="-Wl,-dead_strip"
 else
-    echo "Unsupported OS: $OS"
-    exit 1
+    echo "warning: unsupported OS: $OS. using default compiler settings."
+    COMPILER_FLAGS=""
+    LINKER_FLAGS=""
 fi
 
-# Detect architecture
-ARCH=$(uname -m)
 case "$ARCH" in
     x86_64)
         ARCH_FLAGS="-march=x86-64-v2 -mtune=generic"
@@ -24,34 +27,26 @@ case "$ARCH" in
         ARCH_FLAGS="-march=armv8-a+crc -mtune=generic"
         ;;
     *)
+        echo "warning: unsupported architecture: $ARCH. using generic settings."
         ARCH_FLAGS="-mtune=generic"
         ;;
 esac
 
-echo "Installing dependencies..."
-pip install --upgrade pip setuptools wheel cython
-pip install -r requirements.txt --upgrade
-
-echo "Building and installing meow..."
-CFLAGS="${COMPILER_FLAGS} ${ARCH_FLAGS}" \
-LDFLAGS="${LINKER_FLAGS}" \
-pip install --force-reinstall --no-cache-dir --compile \
-    --user -e . \
-    --global-option="build_ext" \
-    --global-option="--inplace"
-
-# Create installation directory if it doesn't exist
-INSTALL_DIR="${HOME}/.local/bin"
-mkdir -p "$INSTALL_DIR"
-
-# Create symlink to executable for convenience
-if [[ -z "$(which meow)" ]]; then
-    echo "Creating symlink to executable..."
-    ln -sf "$(pwd)/meow/__main__.py" "${INSTALL_DIR}/meow"
-    chmod +x "${INSTALL_DIR}/meow"
-    echo "Added meow to ${INSTALL_DIR}. Make sure this directory is in your PATH."
+# check if pip is installed
+if ! command -v pip &> /dev/null; then
+    echo "error: pip is not installed. please install pip first."
+    exit 1
 fi
 
-echo -e "\nInstallation successful!"
-echo -e "Run with 'meow'"
-echo -e "For a production build, run: cd meow && ./build.sh"
+pip insnall --user meower
+
+# check if installation was successful
+if [ $? -eq 0 ]; then
+    echo "✓ meower successfully installed!"
+else
+    echo "error: installation failed."
+    exit 1
+fi
+
+echo ""
+echo "to use meower, run 'meow'"

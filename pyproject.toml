@@ -1,10 +1,30 @@
 [build-system]
 requires = [
-    "setuptools>=58.0",
-    "wheel>=0.37.0",
-    "cython>=3.0.0"
+    "setuptools>=78.1.0",
+    "wheel>=0.42.0",
+    "cython>=3.0.1"
 ]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "meower"
+dynamic = ["version"]
+description = "a friendly git wrapper"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    {name = "ellipticobj", email = "luna@hackclub.app"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+
+[project.scripts]
+meow = "meow.main:main"
+
 [tool.setuptools]
 package-dir = {"" = "."}
+
+[tool.setuptools.dynamic]
+version = {attr = "meow.config.VERSION"}
