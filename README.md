@@ -39,7 +39,10 @@ build:
 ```
 
 # screenshots
-![screenshot](assets/error.png)
+![basic](assets/success.png)
+![error](assets/error.png)
+![diff](assets/diff.png)
+![report](assets/report.png)
 
 # roadmap
 - feature improvements (ask for user input for certain errors like no email detected)     
