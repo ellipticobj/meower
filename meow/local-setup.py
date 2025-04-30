@@ -1,15 +1,16 @@
-from setuptools import setup, Extension # type: ignore
-from Cython.Build import cythonize # type: ignore
-from Cython.Compiler import Options # type: ignore
-from config import VERSION # type: ignore
+# local-setup.py
+from setuptools import setup, Extension
+from Cython.Build import cythonize
+from Cython.Compiler import Options
+from config import VERSION
+import sys
 
 CFLAGS = [
     "-O3",
-    "-fno-ident", 
+    "-fno-ident",
     "-fmerge-all-constants",
     "-fno-unwind-tables",
     "-fno-asynchronous-unwind-tables",
-    
     "-funroll-loops",
     "-ffunction-sections",
     "-fdata-sections",
@@ -52,13 +53,12 @@ COMPILERDIRECTIVES={
     'fast_getattr': True
 }
 
-
 Options.docstrings = False
 Options.embed_pos_in_docstring = False
 
 extensions = [
     Extension(
-        "meow.utils.helpers", 
+        "meow.utils.helpers",
         ["utils/helpers.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
@@ -94,20 +94,37 @@ extensions = [
     )
 ]
 
-setup(
-    name="meow",
-    version=VERSION,
-    ext_modules=cythonize(
-        extensions,
-        compiler_directives=COMPILERDIRECTIVES,
-        exclude=[
-            "**/__init__.py",
-            "**/tests/*",
-            "setup.py"
-        ],
-        build_dir="build/cython",
-        nthreads=8
-    ),
-    entry_points={"console_scripts": ["meow=meow.main:main"]},
-    zip_safe=False
-)
+if __name__ == "__main__":
+    targetbuildfile = None
+    if len(sys.argv) > 1 and sys.argv[1] != "build_ext":
+        targetbuildfile = sys.argv[-1] # Assume the last argument is the file
+
+    extensionstobuild = []
+    if targetbuildfile:
+        for ext in extensions:
+            if ext.sources[0] == targetbuildfile:
+                extensionstobuild.append(ext)
+                break
+        if not extensionstobuild:
+            print(f"error: File '{targetbuildfile}' not found in the defined extensions.")
+            sys.exit(1)
+    else:
+        extensionstobuild = extensions
+
+    setup(
+        name="meow",
+        version=VERSION,
+        ext_modules=cythonize(
+            extensionstobuild,
+            compiler_directives=COMPILERDIRECTIVES,
+            exclude=[
+                "**/__init__.py",
+                "**/tests/*",
+                "setup.py"
+            ],
+            build_dir="build/cython",
+            nthreads=8
+        ),
+        entry_points={"console_scripts": ["meow=meow.main:main"]},
+        zip_safe=False
+    )

@@ -1,103 +1,3 @@
-#!/bin/bash
-
-# cache directory
-CACHE_DIR=".build_cache"
-HASHES_FILE="${CACHE_DIR}/file_hashes.json"
-mkdir -p "$CACHE_DIR"
-
-# function to calculate hash of a single file
-calchash_file() {
-    sha256sum "$1" | cut -d' ' -f1
-}
-
-# function to load previous hashes
-load_hashes() {
-    if [ -f "$HASHES_FILE" ]; then
-        python3 -c "
-import json, sys, os
-
-hashes_file = '$HASHES_FILE'
-if os.path.exists(hashes_file):
-    try:
-        with open(hashes_file, 'r') as f:
-            hashes = json.load(f)
-            print(json.dumps(hashes))
-    except json.JSONDecodeError:
-        print('{}')
-else:
-    print('{}')
-"
-    else
-        echo "{}"
-    fi
-}
-
-# function to check if a file needs rebuilding
-needs_rebuild() {
-    local file="$1"
-    local current_hash
-    local stored_hashes
-    local stored_hash
-
-    current_hash=$(calchash_file "$file")
-    stored_hashes=$(load_hashes)
-
-    # extract hash using python3 to properly handle JSON
-    stored_hash=$(echo "$stored_hashes" | jq -r ".[\"$file\"] // \"\"")
-
-    if [ -z "$stored_hash" ] || [ "$stored_hash" != "$current_hash" ]; then
-        echo "$current_hash"
-        return 0  # true - needs rebuild
-    else
-        return 1  # false - no rebuild needed
-    fi
-}
-
-# function to update hash for a file
-update_hash() {
-    local file="$1"
-    local new_hash="${2:-}"
-
-    # use provided hash or calculate it
-    if [ -z "$new_hash" ]; then
-        new_hash=$(calchash_file "$file")
-    fi
-
-    # use python3 to properly handle JSON
-    python3 -c "
-import json, sys, os
-
-# load existing hashes
-hashes_file = '$HASHES_FILE'
-if os.path.exists(hashes_file):
-    try:
-        with open(hashes_file, 'r') as f:
-            hashes = json.load(f)
-    except json.JSONDecodeError:
-        hashes = {}
-else:
-    hashes = {}
-
-# update the hash for this file
-hashes['$file'] = '$new_hash'
-
-# save updated hashes
-with open(hashes_file, 'w') as f:
-    json.dump(hashes, f, indent=2)
-"
-}
-
-# clean specific directories but preserve cache
-selectiveclean() {
-    rm -rf temp dist build *.so *.pyd
-    mkdir -p temp
-}
-
-# detect architecture and set flags
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64)
-        ARCH_FLAGS="-march=x86-64-v2 -mtune=generic"
         ;;
     aarch64|arm64)
         ARCH_FLAGS="-march=armv8-a+crc -mtune=generic"
@@ -106,10 +6,6 @@ case "$ARCH" in
         ARCH_FLAGS="-mtune=generic"
         ;;
 esac
-
-echo "installing dependencies..."
-python3 -m pip install -r ../requirements.txt
-python3 -m pip install -r ../build-requirements.txt
 
 # set compiler flags
 CFLAGS="-O3 ${ARCH_FLAGS} -flto -fno-semantic-interposition -fomit-frame-pointer -pipe"
@@ -120,26 +16,14 @@ export CFLAGS LDFLAGS
 CORES=$(python3 -c "import os; print(os.cpu_count())")
 export MAKEFLAGS="-j$CORES"
 
-# find all Cython source files (explicitly create an array)
-find_output=$(find . -type f \( -name "*.py" -o -name "*.pyx" -o -name "*.pxd" \) -not -path "./build/*" -not -path "./dist/*" -not -path "./${CACHE_DIR}/*")
-CYTHON_FILES=()
-while IFS= read -r -d $'\n' file; do
-    CYTHON_FILES+=("$file")
-done <<< "$find_output"
-
-# process the --file flag
-TARGET_FILE=""
-if [[ "$@" =~ "--file" ]]; then
-    TARGET_FILE=$(echo "$@" | sed -n 's/.*--file *\([^ ]*\).*/\1/p')
-    echo "Building only file: $TARGET_FILE"
-    CYTHON_FILES=("$TARGET_FILE")
-fi
+# find all Cython source files
+CYTHON_FILES=$(find . -type f \( -name "*.py" -o -name "*.pyx" -o -name "*.pxd" \) -not -path "./build/*" -not -path "./dist/*" -not -path "./${CACHE_DIR}/*")
 
 # check each file and build if needed
 CHANGED_FILES=()
 CHANGED_HASHES=()
 
-for file in "${CYTHON_FILES[@]}"; do
+for file in $CYTHON_FILES; do
     CURRENT_HASH=$(needs_rebuild "$file")
     if [ $? -eq 0 ]; then
         echo "changes detected in $file, will rebuild this file..."
@@ -150,7 +34,7 @@ done
 
 if [ ${#CHANGED_FILES[@]} -gt 0 ]; then
     echo "building ${#CHANGED_FILES[@]} changed files..."
-
+    
     # clean selectively
     selectiveclean
 
@@ -177,9 +61,10 @@ if [ ${#CHANGED_FILES[@]} -gt 0 ]; then
                 --build-lib=temp \
                 --build-temp=temp/build_cython \
                 --inplace \
+                --source="$file" \
                 --force \
                 --parallel=$CORES \
-                --verbose "$file"
+                --verbose
         done
     fi
 
@@ -231,8 +116,8 @@ python3 -m PyInstaller \
     --exclude-module=pyi_rth_inspect \
     --workpath=temp/build_pyinstaller
 
-# move and strip the executable (no need to move .so files manually with --inplace)
-# mv *.so ./temp/ 2>/dev/null || true
+# move and strip the executable
+mv *.so ./temp/ 2>/dev/null || true
 rm -rf *.spec
 
 strip --strip-all -R .comment -R .note -R .gnu.version dist/meow
@@ -264,10 +149,11 @@ read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
     echo "executable available at: $(pwd)/dist/meow-${ARCH}"
 else
-    sudo mv "dist/meow-${ARCH}" "/usr/bin/meow"
+    sudo mv "dist/meow" "/usr/bin/meow"
     echo "installed to /usr/bin/meow"
     echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
 fi
 
 # clean up temporary files
 rm -rf __pycache__/ build/ temp/
+
